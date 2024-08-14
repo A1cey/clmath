@@ -23,7 +23,17 @@ fn get_input() -> Option<String> {
     let mut input = String::new();
     match io::stdin().read_line(&mut input) {
         Ok(_) => return Some(input.trim().to_string()),
-        Err(err) => error::handle_error(types::ErrorTypes::IoError(err)),
+        Err(err) => error::handle_error(types::ErrorTypes::IoError(err.to_string())),
     };
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::*;
+
+    fn test_main() {
+        assert!(false, "test needs to be written")
+    }
 }

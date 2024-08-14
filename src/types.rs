@@ -1,17 +1,17 @@
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Variable {
     pub name: String,
     pub value: Option<isize>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Tokens {
     Function(FunctionTypes),
     Number(f64),
     Variable(Variable),
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum FunctionTypes {
     Addition,
     Derivative,
@@ -30,8 +30,8 @@ pub const FUNCTIONS: &[(FunctionTypes, &str)] = &[
     (FunctionTypes::Subtraction, "-"),
 ];
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ErrorTypes {
-    IoError(std::io::Error),
+    IoError(String),
     ParserError(String),
 }
