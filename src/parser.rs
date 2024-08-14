@@ -1,53 +1,89 @@
-use std::collections::HashMap;
+use crate::types::{ErrorTypes, Tokens, Variable, FUNCTIONS};
 
-use crate::{error::ErrorTypes, FunctionTypes, KeyWords, Variable, FUNCTIONS};
+pub fn parse_input(input: String) -> Result<Vec<Tokens>, ErrorTypes> {
+    let splitted_input: Vec<&str> = input.split(' ').filter(|slice| (**slice).ne("")).collect();
 
-pub fn parse_input(input: String) -> Result<HashMap<KeyWords, Option<isize>>, ErrorTypes> {
-    let mut map: HashMap<KeyWords, Option<isize>> = HashMap::new();
+    let tokenized_input = tokenize(splitted_input);
 
-    let splitted_input: Vec<&str> = input.split(' ').collect();
+    return match tokenized_input {
+        Ok(tokens) => Ok(tokens),
+        Err(err) => Err(err),
+    };
+}
 
-    for arg in splitted_input {
+fn tokenize(args: Vec<&str>) -> Result<Vec<Tokens>, ErrorTypes> {
+    let mut tokens: Vec<Tokens> = vec![];
+
+    for arg in &args {
         match arg {
-            str if is_only_chars(&arg) => match_for_keyword(arg.clone()),
-
+            // try tokenizing as keyword
+            _ if is_function(&arg) => &mut tokens.push(get_function(&arg)),
+            // try tokenizing as number
+            _ if is_num(&arg) => &mut tokens.push(convert_to_num(&arg)),
+            // try tokenizing as variable
+            _ if is_alphanumeric(&arg) => &mut tokens.push(convert_to_var(&arg)),
             _ => {
                 return Err(ErrorTypes::ParserError(format!(
-                    "Parser could not parse input {}",
-                    input
+                    "Parser could not parse input {:?}",
+                    &args
                 )))
             }
         };
     }
 
-    Ok(map)
+    Ok(tokens)
 }
 
-fn is_only_chars(str: &str) -> bool {
-    for c in str.chars() {
-        if !c.is_alphabetic() {
+fn is_alphanumeric(arg: &str) -> bool {
+    for c in arg.chars() {
+        if !c.is_alphanumeric() {
             return false;
         }
     }
     true
 }
 
-fn match_for_keyword<'a>(str: &'a str) -> KeyWords {
-    let keyword_idx = FUNCTIONS.iter().position(|&keyword| keyword.eq(str));
-    if keyword_idx.is_none() {
-        return KeyWords::Variable(Variable {
-            name: str,
-            value: None,
-        });
-    };
-
-    assert!(keyword_idx.is_some());
-
-    match keyword_idx.unwrap() {
-        0 => KeyWords::Function(FunctionTypes::Derivative),
-        _ => panic!(
-            "This should not happen. A valid function should exist for this keyword index {}",
-            keyword_idx.unwrap()
-        ),
+fn is_num(arg: &str) -> bool {
+    match arg.parse::<f64>() {
+        Ok(_) => true,
+        Err(_) => false,
     }
+}
+
+fn convert_to_num(arg: &str) -> Tokens {
+    Tokens::Number(
+        arg.parse::<f64>()
+            .expect("This should be parsed because it is checked beforeto be a number"),
+    )
+}
+
+fn is_function(arg: &str) -> bool {
+    match FUNCTIONS.iter().find(|(_, keyword)| (*keyword).eq(arg)) {
+        Some(_) => true,
+        None => false,
+    }
+}
+
+fn get_function(arg: &str) -> Tokens {
+    //search keyword in function list
+    let function_idx = FUNCTIONS.iter().position(|(_, keyword)| (*keyword).eq(arg));
+
+    Tokens::Function(
+        FUNCTIONS
+            .get(
+                function_idx.expect(
+                    "This should be a valid index because it is checked before to be valid",
+                ),
+            )
+            .unwrap()
+            .0
+            .clone(),
+    )
+}
+
+fn convert_to_var(arg: &str) -> Tokens {
+    Tokens::Variable(Variable {
+        name: arg.to_string(),
+        value: None,
+    })
 }

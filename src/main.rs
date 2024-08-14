@@ -1,5 +1,6 @@
-pub mod error;
-pub mod parser;
+mod error;
+mod parser;
+mod types;
 
 use std::io;
 
@@ -14,29 +15,15 @@ fn main() {
     assert!(input.is_some());
 
     let parsed_input = parser::parse_input(input.unwrap());
-}
 
-struct Variable {
-    name: &str,
-    value: Option<isize>,
+    println!("{:?}", parsed_input);
 }
-
-enum KeyWords {
-    Variable(Variable),
-    Function(FunctionTypes),
-}
-
-enum FunctionTypes {
-    Derivative,
-}
-
-const FUNCTIONS: [&str; 1] = ["der"];
 
 fn get_input() -> Option<String> {
     let mut input = String::new();
     match io::stdin().read_line(&mut input) {
-        Ok(_) => return Some(input),
-        Err(err) => error::handle_error(error::ErrorTypes::IoError(err)),
+        Ok(_) => return Some(input.trim().to_string()),
+        Err(err) => error::handle_error(types::ErrorTypes::IoError(err)),
     };
     None
 }
