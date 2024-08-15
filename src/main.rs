@@ -1,5 +1,6 @@
 mod error;
 mod parser;
+mod solver;
 mod types;
 
 use std::io;
@@ -9,14 +10,36 @@ fn main() {
 
     // if invalid or no input get new input
     if input.is_none() {
-        main();
+        return main();
     }
 
-    assert!(input.is_some());
+    assert!(
+        input.is_some(),
+        "input should be available when this is run"
+    );
 
     let parsed_input = parser::parse_input(input.unwrap());
 
+    if parsed_input.is_err() {
+        error::handle_error(parsed_input.unwrap_err());
+        return main();
+    }
+
+    assert!(
+        parsed_input.is_ok(),
+        "parsed input should be ok when this is run"
+    );
     println!("{:?}", parsed_input);
+
+    let result = solver::solve(&parsed_input.unwrap());
+
+    if result.is_err() {
+        error::handle_error(result.unwrap_err());
+        return main();
+    }
+
+    assert!(result.is_ok(), "result should be ok when this is run");
+    println!("{}", result.unwrap());
 }
 
 fn get_input() -> Option<String> {
