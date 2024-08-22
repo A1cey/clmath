@@ -9,6 +9,7 @@ pub enum Tokens {
     Function(FunctionTypes),
     Number(f64),
     Variable(Variable),
+    Symbol(SymbolTypes)
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -22,7 +23,7 @@ pub enum FunctionTypes {
     Subtraction,
 }
 
-pub const FUNCTIONS: &[(FunctionTypes, &str)] = &[
+pub const FUNCTIONS: &[(FunctionTypes, &'static str)] = &[
     (FunctionTypes::Addition, "+"),
     (FunctionTypes::Derivative, "der"),
     (FunctionTypes::Division, "/"),
@@ -30,6 +31,17 @@ pub const FUNCTIONS: &[(FunctionTypes, &str)] = &[
     (FunctionTypes::Modulo, "%"),
     (FunctionTypes::Multiplication, "*"),
     (FunctionTypes::Subtraction, "-"),
+];
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum SymbolTypes {
+    OpeningBracket,
+    ClosingBracket
+}
+
+pub const SYMBOLS: &[(SymbolTypes, &'static str)] = &[
+    (SymbolTypes::OpeningBracket, "("),
+    (SymbolTypes::ClosingBracket, ")"),
 ];
 
 #[derive(Debug, PartialEq)]

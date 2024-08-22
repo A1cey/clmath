@@ -1,4 +1,4 @@
-use crate::types::{ErrorTypes, Tokens, Variable, FUNCTIONS};
+use crate::types::{ErrorTypes, FunctionTypes, SymbolTypes, Tokens, Variable, FUNCTIONS, SYMBOLS};
 
 pub fn parse_input(input: String) -> Result<Vec<Tokens>, ErrorTypes> {
     let splitted_input: Vec<&str> = input.split(' ').filter(|slice| (**slice).ne("")).collect();
@@ -22,11 +22,10 @@ fn tokenize(args: Vec<&str>) -> Result<Vec<Tokens>, ErrorTypes> {
             _ if is_num_str(&arg) => tokens.push(tokenize_as_num(&arg)),
             // try tokenizing as var
             _ if is_alphabetic(&arg) => tokens.push(tokenize_as_var(&arg)),
+            // try tokenizing as symbol, multiplication will be added before opening bracket and after closing bracket
+            _ if is_symbol(&arg) => tokens.append(&mut tokenize_as_symbol(&arg)),
             // try tokenizing as variable, nums will be padded with multiplications -> (6a -> 6 * a)
-            _ if is_alphanumeric(&arg) => match split_num_and_str(&mut tokens, &arg) {
-                Some(err) => return Err(err),
-                None => (),
-            },
+            _ if is_alphanumeric(&arg) => tokens.append(&mut split_num_and_str(&arg)),
             // try interpreting the string as a string wihtout whitespaces (e.g.: "5+6")
             // the tokens are appended within the function
             // if it does not work return an error
@@ -47,8 +46,8 @@ fn interpret_string_wo_withespaces(tokens: &mut Vec<Tokens>, args: &str) -> Opti
         // non-alphabetic or comma/dot char
         if !is_alphanumeric(c.to_string().as_str()) && !c.eq(&'.') && !c.eq(&'.') {
             // test char for function
-            if is_func(c.to_string().as_str()) {
-                // if char is a function the idx is remembered for slicing
+            if is_func(c.to_string().as_str()) || is_symbol(c.to_string().as_str()) {
+                // if char is a function or symbol the idx is remembered for slicing
                 slices_idx.push(idx)
             }
             // if char is not a function a error is returned
@@ -105,6 +104,13 @@ fn is_alphabetic(arg: &str) -> bool {
     true
 }
 
+fn is_symbol(arg: &str) -> bool {
+    match SYMBOLS.iter().find(|(_, keyword)| (*keyword).eq(arg)) {
+        Some(_) => true,
+        None => false,
+    }
+}
+
 fn is_num_str(arg: &str) -> bool {
     // check if number has leading sign ("+" or "-") because it will be ignored in the conversion into float
     // sign should be seen as Function
@@ -131,7 +137,10 @@ fn tokenize_as_num(arg: &str) -> Tokens {
 }
 
 fn tokenize_as_var(arg: &str) -> Tokens {
-    Tokens::Variable(Variable { name: arg.to_string(), value: None })
+    Tokens::Variable(Variable {
+        name: arg.to_string(),
+        value: None,
+    })
 }
 
 fn is_func(arg: &str) -> bool {
@@ -158,50 +167,66 @@ fn tokenize_as_func(arg: &str) -> Tokens {
     )
 }
 
-fn split_num_and_str(tokens: &mut Vec<Tokens>, args: &str) -> Option<ErrorTypes> {
+fn tokenize_as_symbol(arg: &str) -> Vec<Tokens> {
+    //search keyword in function list
+    let symbol_idx = SYMBOLS.iter().position(|(_, keyword)| (*keyword).eq(arg));
+
+    let symbol = SYMBOLS
+        .get(
+            symbol_idx
+                .expect("This should be a valid index because it is checked before to be valid"),
+        )
+        .unwrap()
+        .0
+        .clone();
+
+    match symbol {
+        SymbolTypes::OpeningBracket => vec![
+            Tokens::Function(FunctionTypes::Multiplication),
+            Tokens::Symbol(SymbolTypes::OpeningBracket),
+        ],
+        SymbolTypes::ClosingBracket => vec![
+            Tokens::Symbol(SymbolTypes::ClosingBracket),
+            Tokens::Function(FunctionTypes::Multiplication),
+        ],
+    }
+}
+
+fn split_num_and_str(arg: &str) -> Vec<Tokens> {
     let mut multiplication_idx: Vec<usize> = vec![];
 
-    for (idx, c) in args.chars().enumerate() {
+    for (idx, c) in arg.chars().enumerate() {
         // before numbers and after numbers a multiplication operation is added
         // idx is remembered for slicing
         if is_num_char(c) {
             // add multiplication before num if there is no part of the num
-            if idx != 0 && !is_num_char(args.chars().nth(idx - 1).unwrap()) {
+            if idx != 0 && !is_num_char(arg.chars().nth(idx - 1).unwrap()) {
                 multiplication_idx.push(idx);
             }
             // add multiplication after num if there is no part of the num
-            if idx != args.len() - 1 && !is_num_char(args.chars().nth(idx + 1).unwrap()) {
+            if idx != arg.len() - 1 && !is_num_char(arg.chars().nth(idx + 1).unwrap()) {
                 multiplication_idx.push(idx + 1);
             }
         }
-        // returns error if there are non-alpanumeric chars
-        else if !c.is_alphabetic() {
-            return Some(ErrorTypes::ParserError(format!(
-                "Parser could not parse input: {}",
-                &args
-            )));
-        }
     }
 
-    let mut args_with_mult = args.to_string();
+    let mut arg_with_mult = arg.to_string();
 
     // adding multiplication operations
     for idx in multiplication_idx.iter().rev() {
-        args_with_mult.insert_str(*idx, " * ");
+        arg_with_mult.insert_str(*idx, " * ");
     }
 
     // splitting arg at slice indeces and tokenize the slices and append them to the token list
     match tokenize(
-        args_with_mult
+        arg_with_mult
             .split(" ")
             .filter(|slice| (**slice).ne(""))
             .collect(),
     ) {
-        Ok(mut token_list) => &mut tokens.append(&mut token_list),
-        Err(err) => return Some(err),
-    };
-
-    None
+        Ok(token_list) => token_list,
+        Err(err) => panic!("{}", format!("This should never happen: {:?}", err)),
+    }
 }
 
 #[cfg(test)]
@@ -231,14 +256,38 @@ mod tests {
     }
 
     #[test]
-    fn test_convert_to_num() {
-        assert_eq!(convert_to_num("3"), Tokens::Number(3.0));
-        assert_eq!(convert_to_num("3.14"), Tokens::Number(3.14));
-        assert_eq!(convert_to_num("3,14"), Tokens::Number(3.14));
+    fn test_is_symbol() {
+        assert!(is_symbol(")"));
+        assert!(is_symbol("("));
     }
 
     #[test]
-    fn test_convert_to_var() {
+    fn test_tokenize_as_num() {
+        assert_eq!(tokenize_as_num("3"), Tokens::Number(3.0));
+        assert_eq!(tokenize_as_num("3.14"), Tokens::Number(3.14));
+        assert_eq!(tokenize_as_num("3,14"), Tokens::Number(3.14));
+    }
+
+    #[test]
+    fn test_tokenize_as_symbol() {
+        assert_eq!(
+            tokenize_as_symbol("("),
+            vec![
+                Tokens::Function(FunctionTypes::Multiplication),
+                Tokens::Symbol(SymbolTypes::OpeningBracket)
+            ]
+        );
+        assert_eq!(
+            tokenize_as_symbol(")"),
+            vec![
+                Tokens::Symbol(SymbolTypes::ClosingBracket),
+                Tokens::Function(FunctionTypes::Multiplication)
+            ]
+        );
+    }
+
+    #[test]
+    fn test_tokenize_as_var() {
         assert_eq!(
             parse_input("var".to_string()),
             Ok(vec![Tokens::Variable(Variable {
@@ -292,14 +341,14 @@ mod tests {
     #[test]
     fn test_is_function() {
         for func in FUNCTIONS {
-            assert!(is_function(func.1));
+            assert!(is_func(func.1));
         }
     }
 
     #[test]
-    fn test_get_function() {
+    fn test_tokenize_as_func() {
         for func in FUNCTIONS {
-            assert_eq!(get_function(func.1), Tokens::Function(func.0.clone()));
+            assert_eq!(tokenize_as_func(func.1), Tokens::Function(func.0.clone()));
         }
     }
 
@@ -313,7 +362,7 @@ mod tests {
             None
         );
         assert_eq!(
-            interpret_string_wo_withespaces(&mut tokens, "7der+6,0*3"),
+            interpret_string_wo_withespaces(&mut tokens, "7der+6,0*4(3+2)der"),
             None
         );
         assert_eq!(
@@ -334,7 +383,15 @@ mod tests {
                 Tokens::Function(FunctionTypes::Addition),
                 Tokens::Number(6.0),
                 Tokens::Function(FunctionTypes::Multiplication),
+                Tokens::Number(4.0),
+                Tokens::Function(FunctionTypes::Multiplication),
+                Tokens::Symbol(SymbolTypes::OpeningBracket),
                 Tokens::Number(3.0),
+                Tokens::Function(FunctionTypes::Addition),
+                Tokens::Number(2.0),
+                Tokens::Symbol(SymbolTypes::ClosingBracket),
+                Tokens::Function(FunctionTypes::Multiplication),
+                Tokens::Function(FunctionTypes::Derivative),
             ]
         );
         assert_eq!(
