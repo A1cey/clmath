@@ -1,6 +1,6 @@
 mod error;
 mod parser;
-mod solver;
+mod evaluator;
 mod types;
 
 use std::io;
@@ -31,7 +31,7 @@ fn main() {
     );
     println!("{:?}", parsed_input);
 
-    let result = solver::solve(&parsed_input.unwrap());
+    let result = evaluator::evaluate(&parsed_input.unwrap());
 
     if result.is_err() {
         error::handle_error(result.unwrap_err());

@@ -16,19 +16,21 @@ fn tokenize(args: Vec<&str>) -> Result<Vec<Tokens>, ErrorTypes> {
 
     for arg in &args {
         match arg {
-            // try tokenizing as keyword
-            _ if is_function(&arg) => &mut tokens.push(get_function(&arg)),
+            // try tokenizing as function
+            _ if is_func(&arg) => tokens.push(tokenize_as_func(&arg)),
             // try tokenizing as number
-            _ if is_num_str(&arg) => &mut tokens.push(convert_to_num(&arg)),
+            _ if is_num_str(&arg) => tokens.push(tokenize_as_num(&arg)),
+            // try tokenizing as var
+            _ if is_alphabetic(&arg) => tokens.push(tokenize_as_var(&arg)),
             // try tokenizing as variable, nums will be padded with multiplications -> (6a -> 6 * a)
-            _ if is_alphanumeric(&arg) => &mut match convert_to_var(&mut tokens, &arg) {
+            _ if is_alphanumeric(&arg) => match split_num_and_str(&mut tokens, &arg) {
                 Some(err) => return Err(err),
                 None => (),
             },
             // try interpreting the string as a string wihtout whitespaces (e.g.: "5+6")
             // the tokens are appended within the function
             // if it does not work return an error
-            _ => &mut match interpret_string_wo_withespaces(&mut tokens, &arg) {
+            _ => match interpret_string_wo_withespaces(&mut tokens, &arg) {
                 Some(err) => return Err(err),
                 None => (),
             },
@@ -45,7 +47,7 @@ fn interpret_string_wo_withespaces(tokens: &mut Vec<Tokens>, args: &str) -> Opti
         // non-alphabetic or comma/dot char
         if !is_alphanumeric(c.to_string().as_str()) && !c.eq(&'.') && !c.eq(&'.') {
             // test char for function
-            if is_function(c.to_string().as_str()) {
+            if is_func(c.to_string().as_str()) {
                 // if char is a function the idx is remembered for slicing
                 slices_idx.push(idx)
             }
@@ -94,6 +96,15 @@ fn is_alphanumeric(arg: &str) -> bool {
     true
 }
 
+fn is_alphabetic(arg: &str) -> bool {
+    for c in arg.chars() {
+        if !c.is_alphabetic() {
+            return false;
+        }
+    }
+    true
+}
+
 fn is_num_str(arg: &str) -> bool {
     // check if number has leading sign ("+" or "-") because it will be ignored in the conversion into float
     // sign should be seen as Function
@@ -111,22 +122,26 @@ fn is_num_char(c: char) -> bool {
     c.is_numeric() || c.eq(&',') || c.eq(&'.')
 }
 
-fn convert_to_num(arg: &str) -> Tokens {
+fn tokenize_as_num(arg: &str) -> Tokens {
     Tokens::Number(
         arg.replace(",", ".")
             .parse::<f64>()
-            .expect("This should be parsed because it is checked beforeto be a number"),
+            .expect("This should be parsed because it is checked before to be a number"),
     )
 }
 
-fn is_function(arg: &str) -> bool {
+fn tokenize_as_var(arg: &str) -> Tokens {
+    Tokens::Variable(Variable { name: arg.to_string(), value: None })
+}
+
+fn is_func(arg: &str) -> bool {
     match FUNCTIONS.iter().find(|(_, keyword)| (*keyword).eq(arg)) {
         Some(_) => true,
         None => false,
     }
 }
 
-fn get_function(arg: &str) -> Tokens {
+fn tokenize_as_func(arg: &str) -> Tokens {
     //search keyword in function list
     let function_idx = FUNCTIONS.iter().position(|(_, keyword)| (*keyword).eq(arg));
 
@@ -143,7 +158,7 @@ fn get_function(arg: &str) -> Tokens {
     )
 }
 
-fn convert_to_var(tokens: &mut Vec<Tokens>, args: &str) -> Option<ErrorTypes> {
+fn split_num_and_str(tokens: &mut Vec<Tokens>, args: &str) -> Option<ErrorTypes> {
     let mut multiplication_idx: Vec<usize> = vec![];
 
     for (idx, c) in args.chars().enumerate() {
@@ -166,15 +181,6 @@ fn convert_to_var(tokens: &mut Vec<Tokens>, args: &str) -> Option<ErrorTypes> {
                 &args
             )));
         }
-    }
-
-    // a variable of the rest is created if there are no numbers in string
-    if multiplication_idx.is_empty() {
-        tokens.push(Tokens::Variable(Variable {
-            name: args.to_string(),
-            value: None,
-        }));
-        return None;
     }
 
     let mut args_with_mult = args.to_string();
