@@ -1,3 +1,5 @@
+use std::any::TypeId;
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct Variable {
     pub name: String,
@@ -9,7 +11,7 @@ pub enum Tokens {
     Function(FunctionTypes),
     Number(f64),
     Variable(Variable),
-    Symbol(SymbolTypes)
+    Symbol(SymbolTypes),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -36,7 +38,7 @@ pub const FUNCTIONS: &[(FunctionTypes, &'static str)] = &[
 #[derive(Clone, Debug, PartialEq)]
 pub enum SymbolTypes {
     OpeningBracket,
-    ClosingBracket
+    ClosingBracket,
 }
 
 pub const SYMBOLS: &[(SymbolTypes, &'static str)] = &[
@@ -48,4 +50,21 @@ pub const SYMBOLS: &[(SymbolTypes, &'static str)] = &[
 pub enum ErrorTypes {
     IoError(String),
     ParserError(String),
+}
+
+pub enum CharOrStr<'a> {
+    Char(char),
+    Str(&'a str),
+}
+
+impl<'a> From<char> for CharOrStr<'a> {
+    fn from(c: char) -> Self {
+        CharOrStr::Char(c)
+    }
+}
+
+impl<'a> From<&'a str> for CharOrStr<'a> {
+    fn from(s: &'a str) -> Self {
+        CharOrStr::Str(s)
+    }
 }

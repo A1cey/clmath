@@ -1,6 +1,6 @@
 mod error;
-mod parser;
 mod evaluator;
+mod parser;
 mod types;
 
 use std::io;
@@ -13,11 +13,6 @@ fn main() {
         return main();
     }
 
-    assert!(
-        input.is_some(),
-        "input should be available when this is run"
-    );
-
     let parsed_input = parser::parse_input(input.unwrap());
 
     if parsed_input.is_err() {
@@ -25,10 +20,6 @@ fn main() {
         return main();
     }
 
-    assert!(
-        parsed_input.is_ok(),
-        "parsed input should be ok when this is run"
-    );
     println!("{:?}", parsed_input);
 
     let result = evaluator::evaluate(&parsed_input.unwrap());
@@ -38,7 +29,6 @@ fn main() {
         return main();
     }
 
-    assert!(result.is_ok(), "result should be ok when this is run");
     println!("{}", result.unwrap());
 }
 
