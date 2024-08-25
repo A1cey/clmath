@@ -1,5 +1,5 @@
-use crate::types::{ErrorTypes, Tokens};
+use crate::types::{ErrorType, Token};
 
-pub fn evaluate(tokens: &Vec<Tokens>) -> Result<String, ErrorTypes> {
+pub fn evaluate(tokens: &Vec<Token>) -> Result<String, ErrorType> {
     Ok(String::new())
 }

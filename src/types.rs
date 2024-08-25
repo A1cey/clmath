@@ -1,4 +1,4 @@
-use std::any::TypeId;
+use core::fmt::Display;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Variable {
@@ -6,18 +6,41 @@ pub struct Variable {
     pub value: Option<isize>,
 }
 
+impl Display for Variable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.value {
+            Some(value) => write!(f, "{} = {}", self.name, value),
+            None => write!(f, "{} = undefined", self.name),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
-pub enum Tokens {
-    Function(FunctionTypes),
+pub enum Token {
+    Func(FuncType),
     Number(f64),
     Variable(Variable),
-    Symbol(SymbolTypes),
+    Symbol(SymbolType),
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum FunctionTypes {
+pub enum FuncType {
+    Elementary(ElementaryFunc),
+    HigherOrder(HigherOrderFunc),
+}
+
+pub const ELEMENTARY_FUNC_KEYWORDS: &[(ElementaryFunc, &'static str)] = &[
+    (ElementaryFunc::Addition, "+"),
+    (ElementaryFunc::Division, "/"),
+    (ElementaryFunc::Factorial, "!"),
+    (ElementaryFunc::Modulo, "%"),
+    (ElementaryFunc::Multiplication, "*"),
+    (ElementaryFunc::Subtraction, "-"),
+];
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum ElementaryFunc {
     Addition,
-    Derivative,
     Division,
     Factorial,
     Modulo,
@@ -25,29 +48,27 @@ pub enum FunctionTypes {
     Subtraction,
 }
 
-pub const FUNCTIONS: &[(FunctionTypes, &'static str)] = &[
-    (FunctionTypes::Addition, "+"),
-    (FunctionTypes::Derivative, "der"),
-    (FunctionTypes::Division, "/"),
-    (FunctionTypes::Factorial, "!"),
-    (FunctionTypes::Modulo, "%"),
-    (FunctionTypes::Multiplication, "*"),
-    (FunctionTypes::Subtraction, "-"),
-];
+#[derive(Debug, PartialEq, Clone)]
+pub enum HigherOrderFunc {
+    Derivative,
+}
 
-#[derive(Clone, Debug, PartialEq)]
-pub enum SymbolTypes {
+pub const HIGHER_ORDER_FUNC_KEYWORDS: &[(HigherOrderFunc, &'static str)] =
+    &[(HigherOrderFunc::Derivative, "der")];
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum SymbolType {
     OpeningBracket,
     ClosingBracket,
 }
 
-pub const SYMBOLS: &[(SymbolTypes, &'static str)] = &[
-    (SymbolTypes::OpeningBracket, "("),
-    (SymbolTypes::ClosingBracket, ")"),
+pub const SYMBOLS: &[(SymbolType, &'static str)] = &[
+    (SymbolType::OpeningBracket, "("),
+    (SymbolType::ClosingBracket, ")"),
 ];
 
 #[derive(Debug, PartialEq)]
-pub enum ErrorTypes {
+pub enum ErrorType {
     IoError(String),
     ParserError(String),
 }
