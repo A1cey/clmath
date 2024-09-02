@@ -1,4 +1,5 @@
 use core::fmt::Display;
+use phf_macros::phf_map;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Variable {
@@ -29,14 +30,14 @@ pub enum FuncType {
     HigherOrder(HigherOrderFunc),
 }
 
-pub const ELEMENTARY_FUNC_KEYWORDS: &[(ElementaryFunc, &'static str)] = &[
-    (ElementaryFunc::Addition, "+"),
-    (ElementaryFunc::Division, "/"),
-    (ElementaryFunc::Factorial, "!"),
-    (ElementaryFunc::Modulo, "%"),
-    (ElementaryFunc::Multiplication, "*"),
-    (ElementaryFunc::Subtraction, "-"),
-];
+pub const ELEMENTARY_FUNC_KEYWORDS: phf::Map<&'static str, ElementaryFunc> = phf_map! {
+    "+" => ElementaryFunc::Addition,
+    "/" => ElementaryFunc::Division,
+    "!" => ElementaryFunc::Factorial,
+    "%" => ElementaryFunc::Modulo,
+    "*" => ElementaryFunc::Multiplication,
+    "-" => ElementaryFunc::Subtraction,
+};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum ElementaryFunc {
@@ -53,8 +54,9 @@ pub enum HigherOrderFunc {
     Derivative,
 }
 
-pub const HIGHER_ORDER_FUNC_KEYWORDS: &[(HigherOrderFunc, &'static str)] =
-    &[(HigherOrderFunc::Derivative, "der")];
+pub const HIGHER_ORDER_FUNC_KEYWORDS: phf::Map<&'static str, HigherOrderFunc> = phf_map! {
+    "der" => HigherOrderFunc::Derivative,
+};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum SymbolType {

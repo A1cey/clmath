@@ -177,18 +177,12 @@ fn is_num<'a, T: Into<CharOrStr<'a>>>(arg: T) -> bool {
 }
 
 fn is_func(arg: &str) -> bool {
-    match ELEMENTARY_FUNC_KEYWORDS
-        .iter()
-        .map(|(func, symbol)| (FuncType::Elementary(func.clone()), *symbol))
-        .chain(
-            HIGHER_ORDER_FUNC_KEYWORDS
-                .iter()
-                .map(|(func, symbol)| (FuncType::HigherOrder(func.clone()), *symbol)),
-        )
-        .find(|(_, keyword)| (*keyword).eq(arg))
-    {
+    match ELEMENTARY_FUNC_KEYWORDS.get(arg) {
         Some(_) => true,
-        None => false,
+        None => match HIGHER_ORDER_FUNC_KEYWORDS.get(arg) {
+            Some(_) => true,
+            None => false,
+        },
     }
 }
 
@@ -208,32 +202,16 @@ fn tokenize_as_var(arg: &str) -> Token {
 }
 
 fn tokenize_as_func(arg: &str) -> Token {
-    //search keyword in function list
-    let elementary_func_idx = ELEMENTARY_FUNC_KEYWORDS
-        .iter()
-        .position(|(_, keyword)| (*keyword).eq(arg));
-
-    if elementary_func_idx.is_some() {
-        return Token::Func(FuncType::Elementary(
-            ELEMENTARY_FUNC_KEYWORDS
-                .get(elementary_func_idx.unwrap())
-                .unwrap()
-                .0
-                .clone(),
-        ));
+    // search keyword in function list
+    match ELEMENTARY_FUNC_KEYWORDS.get(arg) {
+        Some(func) => Token::Func(FuncType::Elementary(func.clone())),
+        None => match HIGHER_ORDER_FUNC_KEYWORDS.get(arg) {
+            Some(func) => Token::Func(FuncType::HigherOrder(func.clone())),
+            None => panic!(
+                "This should not happen, because the keyword wass checked to be a function before."
+            ),
+        },
     }
-
-    let higher_order_func_idx = HIGHER_ORDER_FUNC_KEYWORDS
-        .iter()
-        .position(|(_, keyword)| (*keyword).eq(arg));
-
-    Token::Func(FuncType::HigherOrder(
-        HIGHER_ORDER_FUNC_KEYWORDS
-            .get(higher_order_func_idx.unwrap())
-            .unwrap()
-            .0
-            .clone(),
-    ))
 }
 
 fn tokenize_as_symbol(arg: &str) -> Vec<Token> {
@@ -412,26 +390,26 @@ mod tests {
 
     #[test]
     fn test_is_function() {
-        for func in ELEMENTARY_FUNC_KEYWORDS {
-            assert!(is_func(func.1));
+        for (keyword, _) in ELEMENTARY_FUNC_KEYWORDS.into_iter() {
+            assert!(is_func(keyword));
         }
-        for func in HIGHER_ORDER_FUNC_KEYWORDS {
-            assert!(is_func(func.1));
+        for (keyword, _) in HIGHER_ORDER_FUNC_KEYWORDS.into_iter() {
+            assert!(is_func(keyword));
         }
     }
 
     #[test]
     fn test_tokenize_as_func() {
-        for func in ELEMENTARY_FUNC_KEYWORDS {
+        for (keyword, func) in ELEMENTARY_FUNC_KEYWORDS.into_iter() {
             assert_eq!(
-                tokenize_as_func(func.1),
-                Token::Func(FuncType::Elementary(func.0.clone()))
+                tokenize_as_func(keyword),
+                Token::Func(FuncType::Elementary(func.clone()))
             );
         }
-        for func in HIGHER_ORDER_FUNC_KEYWORDS {
+        for (keyword, func) in HIGHER_ORDER_FUNC_KEYWORDS.into_iter() {
             assert_eq!(
-                tokenize_as_func(func.1),
-                Token::Func(FuncType::HigherOrder(func.0.clone()))
+                tokenize_as_func(keyword),
+                Token::Func(FuncType::HigherOrder(func.clone()))
             );
         }
     }
