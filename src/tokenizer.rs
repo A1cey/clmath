@@ -5,7 +5,7 @@ use crate::types::{
     ELEMENTARY_FUNC_KEYWORDS, HIGHER_ORDER_FUNC_KEYWORDS, SYMBOLS,
 };
 
-pub fn parse_input(input: String) -> Result<Vec<Token>, ErrorType> {
+pub fn tokenize_input(input: String) -> Result<Vec<Token>, ErrorType> {
     let splitted_input: Vec<&str> = input.split(' ').filter(|slice| (**slice).ne("")).collect();
 
     let tokenized_input = tokenize(splitted_input);

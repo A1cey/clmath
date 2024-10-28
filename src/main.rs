@@ -1,6 +1,6 @@
 mod error;
-mod evaluator;
 mod parser;
+mod tokenizer;
 mod types;
 
 use std::io;
@@ -13,7 +13,7 @@ fn main() {
         return main();
     }
 
-    let parsed_input = parser::parse_input(input.unwrap());
+    let parsed_input = tokenizer::tokenize_input(input.unwrap());
 
     if parsed_input.is_err() {
         error::handle_error(parsed_input.unwrap_err());
@@ -22,7 +22,7 @@ fn main() {
 
     println!("{:?}", parsed_input);
 
-    let result = evaluator::evaluate(&parsed_input.unwrap());
+    let result = parser::parse(&parsed_input.unwrap());
 
     if result.is_err() {
         error::handle_error(result.unwrap_err());
