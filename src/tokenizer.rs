@@ -693,9 +693,9 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_input() {
+    fn test_tokenize_input() {
         assert_eq!(
-            parse_input("5 +    6".to_string()),
+            tokenize_input("5 +    6".to_string()),
             Ok(vec![
                 Token::Number(5.0),
                 Token::Func(FuncType::Elementary(ElementaryFunc::Addition)),
@@ -703,7 +703,7 @@ mod tests {
             ])
         );
         assert_eq!(
-            parse_input("5 + 6".to_string()),
+            tokenize_input("5 + 6".to_string()),
             Ok(vec![
                 Token::Number(5.0),
                 Token::Func(FuncType::Elementary(ElementaryFunc::Addition)),
@@ -711,7 +711,7 @@ mod tests {
             ])
         );
         assert_eq!(
-            parse_input("der 7 * 9 + 6".to_string()),
+            tokenize_input("der 7 * 9 + 6".to_string()),
             Ok(vec![
                 Token::Func(FuncType::HigherOrder(HigherOrderFunc::Derivative)),
                 Token::Number(7.0),
@@ -723,20 +723,20 @@ mod tests {
         );
 
         assert_eq!(
-            parse_input("/".to_string()),
+            tokenize_input("/".to_string()),
             Ok(vec![Token::Func(FuncType::Elementary(
                 ElementaryFunc::Division
             )),])
         );
         assert_eq!(
-            parse_input("var".to_string()),
+            tokenize_input("var".to_string()),
             Ok(vec![Token::Variable(Variable {
                 name: "var".to_string(),
                 value: None
             })])
         );
         assert_eq!(
-            parse_input("var1".to_string()),
+            tokenize_input("var1".to_string()),
             Ok(vec![
                 Token::Variable(Variable {
                     name: "var".to_string(),
@@ -748,7 +748,7 @@ mod tests {
         );
 
         assert_eq!(
-            parse_input("5(3+4a)5".to_string()),
+            tokenize_input("5(3+4a)5".to_string()),
             Ok(vec![
                 Token::Number(5.0),
                 Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
@@ -768,7 +768,7 @@ mod tests {
         );
 
         assert_eq!(
-            parse_input("var$".to_string()),
+            tokenize_input("var$".to_string()),
             Err(ErrorType::ParserError(
                 "Parser could not parse input: var$".to_string()
             ))
