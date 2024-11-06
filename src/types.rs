@@ -1,5 +1,5 @@
+use crate::functions::Func;
 use core::fmt::Display;
-use phf_macros::phf_map;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Variable {
@@ -18,62 +18,20 @@ impl Display for Variable {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {
-    Func(FuncType),
+    Func(Func),
     Number(f64),
     Variable(Variable),
-    Symbol(SymbolType),
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum FuncType {
-    Elementary(ElementaryFunc),
-    HigherOrder(HigherOrderFunc),
-}
-
-pub const ELEMENTARY_FUNC_KEYWORDS: phf::Map<&'static str, ElementaryFunc> = phf_map! {
-    "+" => ElementaryFunc::Addition,
-    "/" => ElementaryFunc::Division,
-    "!" => ElementaryFunc::Factorial,
-    "%" => ElementaryFunc::Modulo,
-    "*" => ElementaryFunc::Multiplication,
-    "-" => ElementaryFunc::Subtraction,
-};
-
-#[derive(Debug, PartialEq, Clone)]
-pub enum ElementaryFunc {
-    Addition,
-    Division,
-    Factorial,
-    Modulo,
-    Multiplication,
-    Subtraction,
+    Symbol(Symbol),
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum HigherOrderFunc {
-    Derivative,
-}
-
-pub const HIGHER_ORDER_FUNC_KEYWORDS: phf::Map<&'static str, HigherOrderFunc> = phf_map! {
-    "der" => HigherOrderFunc::Derivative,
-};
-
-#[derive(Debug, PartialEq, Clone)]
-pub enum SymbolType {
+pub enum Symbol {
     OpeningBracket,
     ClosingBracket,
 }
 
-pub const SYMBOLS: &[(SymbolType, &'static str)] = &[
-    (SymbolType::OpeningBracket, "("),
-    (SymbolType::ClosingBracket, ")"),
-];
-
-#[derive(Debug, PartialEq)]
-pub enum ErrorType {
-    IoError(String),
-    ParserError(String),
-}
+pub const SYMBOLS: &[(Symbol, &'static str)] =
+    &[(Symbol::OpeningBracket, "("), (Symbol::ClosingBracket, ")")];
 
 pub enum CharOrStr<'a> {
     Char(char),

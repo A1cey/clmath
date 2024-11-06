@@ -1,11 +1,14 @@
 use std::vec;
 
-use crate::types::{
-    CharOrStr, ElementaryFunc, ErrorType, FuncType, SymbolType, Token, Variable,
-    ELEMENTARY_FUNC_KEYWORDS, HIGHER_ORDER_FUNC_KEYWORDS, SYMBOLS,
+use crate::types::{CharOrStr, Symbol, Token, Variable, SYMBOLS};
+
+use crate::error::Error;
+
+use crate::functions::{
+    ElementaryFunc, Func, HigherOrderFunc, ELEMENTARY_FUNC_KEYWORDS, HIGHER_ORDER_FUNC_KEYWORDS,
 };
 
-pub fn tokenize_input(input: String) -> Result<Vec<Token>, ErrorType> {
+pub fn tokenize_input(input: String) -> Result<Vec<Token>, Error> {
     let splitted_input: Vec<&str> = input.split(' ').filter(|slice| (**slice).ne("")).collect();
 
     let tokenized_input = tokenize(splitted_input);
@@ -19,7 +22,7 @@ pub fn tokenize_input(input: String) -> Result<Vec<Token>, ErrorType> {
     return Ok(token_list);
 }
 
-fn tokenize(args: Vec<&str>) -> Result<Vec<Token>, ErrorType> {
+fn tokenize(args: Vec<&str>) -> Result<Vec<Token>, Error> {
     let mut tokens: Vec<Token> = vec![];
 
     for arg in args {
@@ -49,7 +52,7 @@ fn tokenize(args: Vec<&str>) -> Result<Vec<Token>, ErrorType> {
 
 /// Adds multiplications where nessecary:
 /// 5 a -> 5 * a
-/// 5 der -> 5 * der
+/// 5 Der -> 5 * Der
 /// 5 (5 + 5) 5 -> 5 * (5 + 5) * 5
 /// () * () -> () * ()
 fn add_multiplications(tokens: &mut Vec<Token>) -> Vec<Token> {
@@ -58,13 +61,11 @@ fn add_multiplications(tokens: &mut Vec<Token>) -> Vec<Token> {
     for (idx, token) in tokens.iter().enumerate() {
         if idx + 1 != tokens.len() {
             match token {
-                Token::Number(_)
-                | Token::Symbol(SymbolType::ClosingBracket)
-                | Token::Variable(_) => {
+                Token::Number(_) | Token::Symbol(Symbol::ClosingBracket) | Token::Variable(_) => {
                     match tokens.get(idx + 1).unwrap() {
-                        Token::Func(FuncType::HigherOrder(_))
+                        Token::Func(Func::HigherOrder(_))
                         | Token::Number(_)
-                        | Token::Symbol(SymbolType::OpeningBracket)
+                        | Token::Symbol(Symbol::OpeningBracket)
                         | Token::Variable(_) => multiplication_idx.push(idx + 1),
                         _ => (),
                     };
@@ -77,14 +78,14 @@ fn add_multiplications(tokens: &mut Vec<Token>) -> Vec<Token> {
     for idx in multiplication_idx.iter().rev() {
         tokens.insert(
             *idx,
-            Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
+            Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
         );
     }
 
     tokens.clone()
 }
 
-fn interpret_string_wo_withespaces(args: &str) -> Result<Vec<Token>, ErrorType> {
+fn interpret_string_wo_withespaces(args: &str) -> Result<Vec<Token>, Error> {
     let mut tokens: Vec<Token> = vec![];
     let mut slices_idx: Vec<usize> = vec![];
 
@@ -98,7 +99,7 @@ fn interpret_string_wo_withespaces(args: &str) -> Result<Vec<Token>, ErrorType> 
             }
             // if char is not a function a error is returned
             else {
-                return Err(ErrorType::ParserError(format!(
+                return Err(Error::ParserError(format!(
                     "Parser could not parse input: {}",
                     args
                 )));
@@ -204,9 +205,9 @@ fn tokenize_as_var(arg: &str) -> Token {
 fn tokenize_as_func(arg: &str) -> Token {
     // search keyword in function list
     match ELEMENTARY_FUNC_KEYWORDS.get(arg) {
-        Some(func) => Token::Func(FuncType::Elementary(func.clone())),
+        Some(func) => Token::Func(Func::Elementary(func.clone())),
         None => match HIGHER_ORDER_FUNC_KEYWORDS.get(arg) {
-            Some(func) => Token::Func(FuncType::HigherOrder(func.clone())),
+            Some(func) => Token::Func(Func::HigherOrder(func.clone())),
             None => panic!(
                 "This should not happen, because the keyword wass checked to be a function before."
             ),
@@ -228,13 +229,13 @@ fn tokenize_as_symbol(arg: &str) -> Vec<Token> {
         .clone();
 
     match symbol {
-        SymbolType::OpeningBracket => vec![
-            Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
-            Token::Symbol(SymbolType::OpeningBracket),
+        Symbol::OpeningBracket => vec![
+            Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
+            Token::Symbol(Symbol::OpeningBracket),
         ],
-        SymbolType::ClosingBracket => vec![
-            Token::Symbol(SymbolType::ClosingBracket),
-            Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
+        Symbol::ClosingBracket => vec![
+            Token::Symbol(Symbol::ClosingBracket),
+            Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
         ],
     }
 }
@@ -318,15 +319,15 @@ mod tests {
         assert_eq!(
             tokenize_as_symbol("("),
             vec![
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
-                Token::Symbol(SymbolType::OpeningBracket)
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
+                Token::Symbol(Symbol::OpeningBracket)
             ]
         );
         assert_eq!(
             tokenize_as_symbol(")"),
             vec![
-                Token::Symbol(SymbolType::ClosingBracket),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication))
+                Token::Symbol(Symbol::ClosingBracket),
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication))
             ]
         );
     }
@@ -355,26 +356,26 @@ mod tests {
             split_num_and_str("76var1a6,1b5.01"),
             vec![
                 Token::Number(76.0),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Variable(Variable {
                     name: "var".to_string(),
                     value: None
                 }),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Number(1.0),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Variable(Variable {
                     name: "a".to_string(),
                     value: None
                 }),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Number(6.1),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Variable(Variable {
                     name: "b".to_string(),
                     value: None
                 }),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Number(5.01),
             ]
         );
@@ -403,13 +404,13 @@ mod tests {
         for (keyword, func) in ELEMENTARY_FUNC_KEYWORDS.into_iter() {
             assert_eq!(
                 tokenize_as_func(keyword),
-                Token::Func(FuncType::Elementary(func.clone()))
+                Token::Func(Func::Elementary(func.clone()))
             );
         }
         for (keyword, func) in HIGHER_ORDER_FUNC_KEYWORDS.into_iter() {
             assert_eq!(
                 tokenize_as_func(keyword),
-                Token::Func(FuncType::HigherOrder(func.clone()))
+                Token::Func(Func::HigherOrder(func.clone()))
             );
         }
     }
@@ -420,18 +421,18 @@ mod tests {
             interpret_string_wo_withespaces("5-"),
             Ok(vec![
                 Token::Number(5.0),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Subtraction)),
+                Token::Func(Func::Elementary(ElementaryFunc::Subtraction)),
             ])
         );
         assert_eq!(
             interpret_string_wo_withespaces("der7*9+6"),
             Ok(vec![
-                Token::Func(FuncType::HigherOrder(HigherOrderFunc::Derivative)),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
+                Token::Func(Func::HigherOrder(HigherOrderFunc::Derivative)),
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Number(7.0),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Number(9.0),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Addition)),
+                Token::Func(Func::Elementary(ElementaryFunc::Addition)),
                 Token::Number(6.0),
             ])
         );
@@ -439,25 +440,25 @@ mod tests {
             interpret_string_wo_withespaces("7der+6,0*4(3+2)der"),
             Ok(vec![
                 Token::Number(7.0),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
-                Token::Func(FuncType::HigherOrder(HigherOrderFunc::Derivative)),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Addition)),
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
+                Token::Func(Func::HigherOrder(HigherOrderFunc::Derivative)),
+                Token::Func(Func::Elementary(ElementaryFunc::Addition)),
                 Token::Number(6.0),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Number(4.0),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
-                Token::Symbol(SymbolType::OpeningBracket),
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
+                Token::Symbol(Symbol::OpeningBracket),
                 Token::Number(3.0),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Addition)),
+                Token::Func(Func::Elementary(ElementaryFunc::Addition)),
                 Token::Number(2.0),
-                Token::Symbol(SymbolType::ClosingBracket),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
-                Token::Func(FuncType::HigherOrder(HigherOrderFunc::Derivative)),
+                Token::Symbol(Symbol::ClosingBracket),
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
+                Token::Func(Func::HigherOrder(HigherOrderFunc::Derivative)),
             ])
         );
         assert_eq!(
             interpret_string_wo_withespaces("7&"),
-            Err(ErrorType::ParserError(
+            Err(Error::ParserError(
                 "Parser could not parse input: 7&".to_string()
             ))
         )
@@ -469,25 +470,25 @@ mod tests {
             tokenize(vec!["5", "+", "6"]),
             Ok(vec![
                 Token::Number(5.0),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Addition)),
+                Token::Func(Func::Elementary(ElementaryFunc::Addition)),
                 Token::Number(6.0)
             ])
         );
         assert_eq!(
             tokenize(vec!["der", "7", "*", "9", "+", "6"]),
             Ok(vec![
-                Token::Func(FuncType::HigherOrder(HigherOrderFunc::Derivative)),
+                Token::Func(Func::HigherOrder(HigherOrderFunc::Derivative)),
                 Token::Number(7.0),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Number(9.0),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Addition)),
+                Token::Func(Func::Elementary(ElementaryFunc::Addition)),
                 Token::Number(6.0)
             ])
         );
 
         assert_eq!(
             tokenize(vec!["/"]),
-            Ok(vec![Token::Func(FuncType::Elementary(
+            Ok(vec![Token::Func(Func::Elementary(
                 ElementaryFunc::Division
             )),])
         );
@@ -505,13 +506,13 @@ mod tests {
                     name: "var".to_string(),
                     value: None
                 }),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Number(1.0)
             ])
         );
         assert_eq!(
             tokenize(vec!["var$"]),
-            Err(ErrorType::ParserError(
+            Err(Error::ParserError(
                 "Parser could not parse input: var$".to_string()
             ))
         );
@@ -523,30 +524,30 @@ mod tests {
             add_multiplications(&mut vec![Token::Number(6.0), Token::Number(6.0),]),
             vec![
                 Token::Number(6.0),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Number(6.0),
             ]
         );
         assert_eq!(
             add_multiplications(&mut vec![
                 Token::Number(6.0),
-                Token::Func(FuncType::HigherOrder(HigherOrderFunc::Derivative))
+                Token::Func(Func::HigherOrder(HigherOrderFunc::Derivative))
             ]),
             vec![
                 Token::Number(6.0),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
-                Token::Func(FuncType::HigherOrder(HigherOrderFunc::Derivative))
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
+                Token::Func(Func::HigherOrder(HigherOrderFunc::Derivative))
             ]
         );
         assert_eq!(
             add_multiplications(&mut vec![
                 Token::Number(6.0),
-                Token::Symbol(SymbolType::OpeningBracket)
+                Token::Symbol(Symbol::OpeningBracket)
             ]),
             vec![
                 Token::Number(6.0),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
-                Token::Symbol(SymbolType::OpeningBracket)
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
+                Token::Symbol(Symbol::OpeningBracket)
             ]
         );
         assert_eq!(
@@ -559,7 +560,7 @@ mod tests {
             ]),
             vec![
                 Token::Number(6.0),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Variable(Variable {
                     name: "var".to_string(),
                     value: None
@@ -568,48 +569,48 @@ mod tests {
         );
         assert_eq!(
             add_multiplications(&mut vec![
-                Token::Symbol(SymbolType::ClosingBracket),
+                Token::Symbol(Symbol::ClosingBracket),
                 Token::Number(6.0),
             ]),
             vec![
-                Token::Symbol(SymbolType::ClosingBracket),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
+                Token::Symbol(Symbol::ClosingBracket),
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Number(6.0),
             ]
         );
         assert_eq!(
             add_multiplications(&mut vec![
-                Token::Symbol(SymbolType::ClosingBracket),
-                Token::Func(FuncType::HigherOrder(HigherOrderFunc::Derivative))
+                Token::Symbol(Symbol::ClosingBracket),
+                Token::Func(Func::HigherOrder(HigherOrderFunc::Derivative))
             ]),
             vec![
-                Token::Symbol(SymbolType::ClosingBracket),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
-                Token::Func(FuncType::HigherOrder(HigherOrderFunc::Derivative))
+                Token::Symbol(Symbol::ClosingBracket),
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
+                Token::Func(Func::HigherOrder(HigherOrderFunc::Derivative))
             ]
         );
         assert_eq!(
             add_multiplications(&mut vec![
-                Token::Symbol(SymbolType::ClosingBracket),
-                Token::Symbol(SymbolType::OpeningBracket)
+                Token::Symbol(Symbol::ClosingBracket),
+                Token::Symbol(Symbol::OpeningBracket)
             ]),
             vec![
-                Token::Symbol(SymbolType::ClosingBracket),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
-                Token::Symbol(SymbolType::OpeningBracket)
+                Token::Symbol(Symbol::ClosingBracket),
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
+                Token::Symbol(Symbol::OpeningBracket)
             ]
         );
         assert_eq!(
             add_multiplications(&mut vec![
-                Token::Symbol(SymbolType::ClosingBracket),
+                Token::Symbol(Symbol::ClosingBracket),
                 Token::Variable(Variable {
                     name: "var".to_string(),
                     value: None
                 })
             ]),
             vec![
-                Token::Symbol(SymbolType::ClosingBracket),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
+                Token::Symbol(Symbol::ClosingBracket),
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Variable(Variable {
                     name: "var".to_string(),
                     value: None
@@ -629,7 +630,7 @@ mod tests {
                     name: "var".to_string(),
                     value: None
                 }),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Number(6.0),
             ]
         );
@@ -639,15 +640,15 @@ mod tests {
                     name: "var".to_string(),
                     value: None
                 }),
-                Token::Func(FuncType::HigherOrder(HigherOrderFunc::Derivative))
+                Token::Func(Func::HigherOrder(HigherOrderFunc::Derivative))
             ]),
             vec![
                 Token::Variable(Variable {
                     name: "var".to_string(),
                     value: None
                 }),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
-                Token::Func(FuncType::HigherOrder(HigherOrderFunc::Derivative))
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
+                Token::Func(Func::HigherOrder(HigherOrderFunc::Derivative))
             ]
         );
         assert_eq!(
@@ -656,15 +657,15 @@ mod tests {
                     name: "var".to_string(),
                     value: None
                 }),
-                Token::Symbol(SymbolType::OpeningBracket)
+                Token::Symbol(Symbol::OpeningBracket)
             ]),
             vec![
                 Token::Variable(Variable {
                     name: "var".to_string(),
                     value: None
                 }),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
-                Token::Symbol(SymbolType::OpeningBracket)
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
+                Token::Symbol(Symbol::OpeningBracket)
             ]
         );
         assert_eq!(
@@ -683,7 +684,7 @@ mod tests {
                     name: "var".to_string(),
                     value: None
                 }),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Variable(Variable {
                     name: "var".to_string(),
                     value: None
@@ -698,7 +699,7 @@ mod tests {
             tokenize_input("5 +    6".to_string()),
             Ok(vec![
                 Token::Number(5.0),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Addition)),
+                Token::Func(Func::Elementary(ElementaryFunc::Addition)),
                 Token::Number(6.0)
             ])
         );
@@ -706,25 +707,25 @@ mod tests {
             tokenize_input("5 + 6".to_string()),
             Ok(vec![
                 Token::Number(5.0),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Addition)),
+                Token::Func(Func::Elementary(ElementaryFunc::Addition)),
                 Token::Number(6.0)
             ])
         );
         assert_eq!(
-            tokenize_input("der 7 * 9 + 6".to_string()),
+            tokenize_input("Der 7 * 9 + 6".to_string()),
             Ok(vec![
-                Token::Func(FuncType::HigherOrder(HigherOrderFunc::Derivative)),
+                Token::Func(Func::HigherOrder(HigherOrderFunc::Derivative)),
                 Token::Number(7.0),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Number(9.0),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Addition)),
+                Token::Func(Func::Elementary(ElementaryFunc::Addition)),
                 Token::Number(6.0)
             ])
         );
 
         assert_eq!(
             tokenize_input("/".to_string()),
-            Ok(vec![Token::Func(FuncType::Elementary(
+            Ok(vec![Token::Func(Func::Elementary(
                 ElementaryFunc::Division
             )),])
         );
@@ -742,7 +743,7 @@ mod tests {
                     name: "var".to_string(),
                     value: None
                 }),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Number(1.0)
             ])
         );
@@ -751,25 +752,25 @@ mod tests {
             tokenize_input("5(3+4a)5".to_string()),
             Ok(vec![
                 Token::Number(5.0),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
-                Token::Symbol(SymbolType::OpeningBracket),
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
+                Token::Symbol(Symbol::OpeningBracket),
                 Token::Number(3.0),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Addition)),
+                Token::Func(Func::Elementary(ElementaryFunc::Addition)),
                 Token::Number(4.0),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Variable(Variable {
                     name: "a".to_string(),
                     value: None
                 }),
-                Token::Symbol(SymbolType::ClosingBracket),
-                Token::Func(FuncType::Elementary(ElementaryFunc::Multiplication)),
+                Token::Symbol(Symbol::ClosingBracket),
+                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Number(5.0)
             ])
         );
 
         assert_eq!(
             tokenize_input("var$".to_string()),
-            Err(ErrorType::ParserError(
+            Err(Error::ParserError(
                 "Parser could not parse input: var$".to_string()
             ))
         );
