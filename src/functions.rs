@@ -53,6 +53,7 @@ pub fn factorial(num: u32) -> Result<u32, Error> {
     Ok(result)
 }
 
+/// Calculates the sum of two 64bit floating point numbers
 pub fn addition(a: f64, b: f64) -> Result<f64, Error> {
     // Overflow check
     if a > f64::MAX - b {
