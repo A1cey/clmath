@@ -33,9 +33,9 @@ fn tokenize(args: Vec<&str>) -> Result<Vec<Token>, Error> {
             _ if is_num(arg) => tokens.push(tokenize_as_num(arg)),
             // try tokenizing as var
             _ if is_alphabetic(arg) => tokens.push(tokenize_as_var(arg)),
-            // try tokenizing as symbol, multiplication will be added before opening bracket and after closing bracket
-            _ if is_symbol(arg) => tokens.append(&mut tokenize_as_symbol(arg)),
-            // try tokenizing as variable, nums will be padded with multiplications -> (6a -> 6 * a)
+            // try tokenizing as symbol
+            _ if is_symbol(arg) => tokens.push(tokenize_as_symbol(arg)),
+            // split numbers and chars
             _ if is_alphanumeric(arg) => tokens.append(&mut split_num_and_str(arg)),
             // try interpreting the string as a string wihtout whitespaces (e.g.: "5+6")
             // the tokens are appended within the function
@@ -153,10 +153,7 @@ fn is_alphabetic(arg: &str) -> bool {
 }
 
 fn is_symbol(arg: &str) -> bool {
-    match SYMBOLS.iter().find(|(_, keyword)| (*keyword).eq(arg)) {
-        Some(_) => true,
-        None => false,
-    }
+    SYMBOLS.contains_key(arg)
 }
 
 fn is_num<'a, T: Into<CharOrStr<'a>>>(arg: T) -> bool {
@@ -215,54 +212,38 @@ fn tokenize_as_func(arg: &str) -> Token {
     }
 }
 
-fn tokenize_as_symbol(arg: &str) -> Vec<Token> {
-    //search keyword in function list
-    let symbol_idx = SYMBOLS.iter().position(|(_, keyword)| (*keyword).eq(arg));
-
-    let symbol = SYMBOLS
-        .get(
-            symbol_idx
-                .expect("This should be a valid index because it is checked before to be valid"),
-        )
-        .unwrap()
-        .0
-        .clone();
-
-    match symbol {
-        Symbol::OpeningBracket => vec![
-            Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
-            Token::Symbol(Symbol::OpeningBracket),
-        ],
-        Symbol::ClosingBracket => vec![
-            Token::Symbol(Symbol::ClosingBracket),
-            Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
-        ],
+fn tokenize_as_symbol(arg: &str) -> Token {
+    match SYMBOLS.get(arg).expect(
+        format!("This ({arg}) should be a valid symbol because it is checked before to be valid.")
+            .as_str(),
+    ) {
+        Symbol::OpeningBracket => Token::Symbol(Symbol::OpeningBracket),
+        Symbol::ClosingBracket => Token::Symbol(Symbol::ClosingBracket),
     }
 }
 
 fn split_num_and_str(arg: &str) -> Vec<Token> {
-    let mut multiplication_idx: Vec<usize> = vec![];
+    let mut split_idx: Vec<usize> = vec![];
 
     for (idx, c) in arg.chars().enumerate() {
-        // before numbers and after numbers a multiplication operation is added
         // idx is remembered for slicing
         if is_num(c) {
-            // add multiplication before num if there is no part of the num
+            // add whitespace before num if there is no part of the num
             if idx != 0 && !is_num(arg.chars().nth(idx - 1).unwrap()) {
-                multiplication_idx.push(idx);
+                split_idx.push(idx);
             }
-            // add multiplication after num if there is no part of the num
+            // add whitespace after num if there is no part of the num
             if idx != arg.len() - 1 && !is_num(arg.chars().nth(idx + 1).unwrap()) {
-                multiplication_idx.push(idx + 1);
+                split_idx.push(idx + 1);
             }
         }
     }
 
     let mut arg_with_mult = arg.to_string();
 
-    // adding multiplication operations
-    for idx in multiplication_idx.iter().rev() {
-        arg_with_mult.insert_str(*idx, " * ");
+    // split string at determined indeces
+    for idx in split_idx.iter().rev() {
+        arg_with_mult.insert_str(*idx, " ");
     }
 
     // splitting arg at slice indeces and tokenize the slices and append them to the token list
@@ -318,17 +299,11 @@ mod tests {
     fn test_tokenize_as_symbol() {
         assert_eq!(
             tokenize_as_symbol("("),
-            vec![
-                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
-                Token::Symbol(Symbol::OpeningBracket)
-            ]
+            Token::Symbol(Symbol::OpeningBracket)
         );
         assert_eq!(
             tokenize_as_symbol(")"),
-            vec![
-                Token::Symbol(Symbol::ClosingBracket),
-                Token::Func(Func::Elementary(ElementaryFunc::Multiplication))
-            ]
+            Token::Symbol(Symbol::ClosingBracket),
         );
     }
 
@@ -356,26 +331,20 @@ mod tests {
             split_num_and_str("76var1a6,1b5.01"),
             vec![
                 Token::Number(76.0),
-                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Variable(Variable {
                     name: "var".to_string(),
                     value: None
                 }),
-                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Number(1.0),
-                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Variable(Variable {
                     name: "a".to_string(),
                     value: None
                 }),
-                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Number(6.1),
-                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Variable(Variable {
                     name: "b".to_string(),
                     value: None
                 }),
-                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Number(5.01),
             ]
         );
@@ -425,10 +394,9 @@ mod tests {
             ])
         );
         assert_eq!(
-            interpret_string_wo_withespaces("der7*9+6"),
+            interpret_string_wo_withespaces("Der7*9+6"),
             Ok(vec![
                 Token::Func(Func::HigherOrder(HigherOrderFunc::Derivative)),
-                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Number(7.0),
                 Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Number(9.0),
@@ -437,22 +405,19 @@ mod tests {
             ])
         );
         assert_eq!(
-            interpret_string_wo_withespaces("7der+6,0*4(3+2)der"),
+            interpret_string_wo_withespaces("7Der+6,0*4(3+2)Der"),
             Ok(vec![
                 Token::Number(7.0),
-                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Func(Func::HigherOrder(HigherOrderFunc::Derivative)),
                 Token::Func(Func::Elementary(ElementaryFunc::Addition)),
                 Token::Number(6.0),
                 Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Number(4.0),
-                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Symbol(Symbol::OpeningBracket),
                 Token::Number(3.0),
                 Token::Func(Func::Elementary(ElementaryFunc::Addition)),
                 Token::Number(2.0),
                 Token::Symbol(Symbol::ClosingBracket),
-                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Func(Func::HigherOrder(HigherOrderFunc::Derivative)),
             ])
         );
@@ -475,7 +440,7 @@ mod tests {
             ])
         );
         assert_eq!(
-            tokenize(vec!["der", "7", "*", "9", "+", "6"]),
+            tokenize(vec!["Der", "7", "*", "9", "+", "6"]),
             Ok(vec![
                 Token::Func(Func::HigherOrder(HigherOrderFunc::Derivative)),
                 Token::Number(7.0),
@@ -506,7 +471,6 @@ mod tests {
                     name: "var".to_string(),
                     value: None
                 }),
-                Token::Func(Func::Elementary(ElementaryFunc::Multiplication)),
                 Token::Number(1.0)
             ])
         );
