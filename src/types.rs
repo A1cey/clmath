@@ -1,3 +1,5 @@
+use phf_macros::phf_map;
+
 use crate::functions::Func;
 use core::fmt::Display;
 
@@ -30,8 +32,10 @@ pub enum Symbol {
     ClosingBracket,
 }
 
-pub const SYMBOLS: &[(Symbol, &'static str)] =
-    &[(Symbol::OpeningBracket, "("), (Symbol::ClosingBracket, ")")];
+pub const SYMBOLS: phf::Map<&'static str, Symbol> = phf_map! {
+    "(" => Symbol::OpeningBracket,
+    ")" => Symbol::ClosingBracket
+};
 
 pub enum CharOrStr<'a> {
     Char(char),
