@@ -7,5 +7,7 @@ pub enum Error {
     IoError(String),
     ParserError(String),
     FactorialError(String),
-    AdditionError(String)
+    DivisionByZero(String),
+    OverflowInf(String),
+    UnderflowInf(String),
 }
