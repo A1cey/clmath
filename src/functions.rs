@@ -15,6 +15,8 @@ pub const ELEMENTARY_FUNC_KEYWORDS: phf::Map<&'static str, ElementaryFunc> = phf
     "%" => ElementaryFunc::Modulo,
     "*" => ElementaryFunc::Multiplication,
     "-" => ElementaryFunc::Subtraction,
+    "<" => ElementaryFunc::LessThan,
+    ">" => ElementaryFunc::GreaterThan,
 };
 
 #[derive(Debug, PartialEq, Clone)]
@@ -24,6 +26,8 @@ pub enum ElementaryFunc {
     Modulo,
     Multiplication,
     Subtraction,
+    LessThan,
+    GreaterThan
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -31,13 +35,44 @@ pub enum HigherOrderFunc {
     Derivative,
     Factorial,
     EucleadianModulo,
+    Minimum,
+    Maximum,
+    Absolute,
 }
 
 pub const HIGHER_ORDER_FUNC_KEYWORDS: phf::Map<&'static str, HigherOrderFunc> = phf_map! {
     "Der" => HigherOrderFunc::Derivative,
     "Fac" => HigherOrderFunc::Factorial,
-    "EMod" => HigherOrderFunc::EucleadianModulo
+    "EMod" => HigherOrderFunc::EucleadianModulo,
+    "Min" => HigherOrderFunc::Minimum,
+    "Max" => HigherOrderFunc::Maximum,
+    "Abs" => HigherOrderFunc::Absolute
 };
+
+/// Returns true if the first number of the two provided 64bit floating point numbers is smaller than the second else false 
+pub fn lessThan(a: f64, b: f64) -> bool {
+    a < b
+}
+
+/// Returns true if the first number of the two provided 64bit floating point numbers is greater than the second else false 
+pub fn greaterThan(a: f64, b: f64) -> bool {
+    a > b
+}
+
+/// Returns the absolute value of the provided 64bit floating point number
+pub fn absolute(num: f64) -> f64 {
+    num.abs()
+}
+
+/// Returns the minimum of the two provided 64bit floating point numbers
+pub fn minimum(a: f64, b: f64) -> f64 {
+    a.min(b)
+}
+
+/// Returns the maximum of the two provided 64bit floating point numbers
+pub fn maximum(a: f64, b: f64) -> f64 {
+    a.max(b)
+}
 
 /// Calculates the factorial of a 32bit unsigned integer
 pub fn factorial(num: u32) -> Result<u32, Error> {
