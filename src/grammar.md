@@ -6,7 +6,7 @@ Any amount of whitespaces between every Terminal or Non-Terminal are allowed and
 
     MATH_EXPRESSION ::=  NUMBER | VARIABLE | FUNCTION 
 
-    NUMBER ::= [0-9]+(\.[0-9]+)?                                                // Numbers are internally handled as 64bit floating point numbers
+    NUMBER ::= [0-9]+(\.[0-9]+)?                                                // Numbers are handled as 64bit floating point numbers
 
     VARIABLE ::= [a-z][a-zA-Z]*
 
