@@ -1,17 +1,17 @@
 The allowed grammar for this math interpreter is as follows:
 
-Expression ::= (MathExpression) | MathExpression | eps
+EXPRESSION ::= (MATH_EXPRESSION) | MATH_EXPRESSION | eps
 
-MathExpression ::=  Number | Variable | Function 
+MATH_EXPRESSION ::=  NUMBER | VARIABLE | FUNCTION 
 
-Number ::= [0-9]+(\.[0-9]+)?                                            // Numbers are internally handled as 64bit floating point numbers
+NUMBER ::= [0-9]+(\.[0-9]+)?                                                // Numbers are internally handled as 64bit floating point numbers
 
-Variable ::= [a-z][a-zA-Z]*
+VARIABLE ::= [a-z][a-zA-Z]*
 
-Function ::= LowerOrderFunction | HigherOrderFunction
+FUNCTION ::= LOWER_ORDER_FUNCTION | HIGHER_ORDER_FUNCTION
 
-LowerOrderFunction ::= Expression LowerOrderFunctionKeyword Expression
-LowerOrderFunctionKeyword ::= [A-Z][a-zA-Z]*                            // Function Keywords are predefined
+LOWER_ORDER_FUNCTION ::= EXPRESSION LOWER_ORDER_FUNCTION_KEYWORD EXPRESSION
+LOWER_ORDER_FUNCTION_KEYWORD ::= [A-Z][a-zA-Z]*                             // Function Keywords are predefined
 
-HigherOrderFunction ::= HigherOrderFunctionKeyWord(Expression)
-HigherOrderFunctionKeyWord ::= [A-Z][a-zA-Z]*                           // Function Keywords are predefined
+HIGHER_ORDER_FUNCTION ::= HIGHER_ORDER_FUNCTION_KEYWORD(EXPRESSION)
+HIGHER_ORDER_FUNCTION_KEYWORD ::= [A-Z][a-zA-Z]*                            // Function Keywords are predefined
