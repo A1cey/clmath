@@ -1,12 +1,63 @@
+use core::fmt::Display;
+use phf_macros::phf_map;
 use std::vec;
 
-use crate::types::{CharOrStr, Symbol, Token, Variable, SYMBOLS};
-
-use crate::error::Error;
+use crate::error::*;
 
 use crate::functions::{
-    ElementaryFunc, Func, HigherOrderFunc, ELEMENTARY_FUNC_KEYWORDS, HIGHER_ORDER_FUNC_KEYWORDS,
+    ElementaryFunc, Func, ELEMENTARY_FUNC_KEYWORDS, HIGHER_ORDER_FUNC_KEYWORDS,
 };
+
+#[derive(Debug, PartialEq, Clone)]
+struct Variable {
+    name: String,
+    value: Option<isize>,
+}
+
+impl Display for Variable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.value {
+            Some(value) => write!(f, "{} = {}", self.name, value),
+            None => write!(f, "{} = undefined", self.name),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum Token {
+    Func(Func),
+    Number(f64),
+    Variable(Variable),
+    Symbol(Symbol),
+}
+
+#[derive(Debug, PartialEq, Clone)]
+enum Symbol {
+    OpeningBracket,
+    ClosingBracket,
+}
+
+const SYMBOLS: phf::Map<&'static str, Symbol> = phf_map! {
+    "(" => Symbol::OpeningBracket,
+    ")" => Symbol::ClosingBracket
+};
+
+enum CharOrStr<'a> {
+    Char(char),
+    Str(&'a str),
+}
+
+impl<'a> From<char> for CharOrStr<'a> {
+    fn from(c: char) -> Self {
+        CharOrStr::Char(c)
+    }
+}
+
+impl<'a> From<&'a str> for CharOrStr<'a> {
+    fn from(s: &'a str) -> Self {
+        CharOrStr::Str(s)
+    }
+}
 
 pub fn tokenize_input(input: String) -> Result<Vec<Token>, Error> {
     let splitted_input: Vec<&str> = input.split(' ').filter(|slice| (**slice).ne("")).collect();
@@ -99,10 +150,11 @@ fn interpret_string_wo_withespaces(args: &str) -> Result<Vec<Token>, Error> {
             }
             // if char is not a function a error is returned
             else {
-                return Err(Error::ParserError(format!(
-                    "Parser could not parse input: {}",
-                    args
-                )));
+                return Err(Error::new(
+                    format!("Tokenizer could not tokenize input: {}", args),
+                    ErrorType::Tokenizer(TokenizerError::InvalidInput),
+                    None
+                ));
             }
         }
     }
@@ -263,7 +315,7 @@ mod tests {
     use std::vec;
 
     use super::*;
-    use crate::types::*;
+    use crate::functions::*;
 
     #[test]
     fn test_is_num() {
@@ -423,8 +475,10 @@ mod tests {
         );
         assert_eq!(
             interpret_string_wo_withespaces("7&"),
-            Err(Error::ParserError(
-                "Parser could not parse input: 7&".to_string()
+            Err(Error::new(
+                "Tokenizer could not tokenize input: 7&".to_string(),
+                ErrorType::Tokenizer(TokenizerError::InvalidInput),
+                None
             ))
         )
     }
@@ -476,8 +530,10 @@ mod tests {
         );
         assert_eq!(
             tokenize(vec!["var$"]),
-            Err(Error::ParserError(
-                "Parser could not parse input: var$".to_string()
+            Err(Error::new(
+                "Tokenizer could not tokenize input: var$".to_string(),
+                ErrorType::Tokenizer(TokenizerError::InvalidInput),
+                None
             ))
         );
     }
@@ -734,8 +790,10 @@ mod tests {
 
         assert_eq!(
             tokenize_input("var$".to_string()),
-            Err(Error::ParserError(
-                "Parser could not parse input: var$".to_string()
+            Err(Error::new(
+                "Tokenizer could not tokenize input: var$".to_string(),
+                ErrorType::Tokenizer(TokenizerError::InvalidInput),
+                None
             ))
         );
     }

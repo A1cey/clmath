@@ -1,6 +1,6 @@
 use crate::error::Error;
 use crate::functions::Func;
-use crate::types::Token;
+use crate::tokenizer::Token;
 
 pub fn parse(tokens: &Vec<Token>) -> Result<String, Error> {
     Ok(format!("{:?}", tokens))

@@ -2,8 +2,9 @@ mod error;
 mod functions;
 mod parser;
 mod tokenizer;
-mod types;
+mod tokenizer2;
 
+use error::{Error, ErrorType};
 use std::io;
 
 fn main() {
@@ -28,7 +29,7 @@ fn get_input() -> Option<String> {
     let mut input = String::new();
     match io::stdin().read_line(&mut input) {
         Ok(_) => return Some(input.trim().to_string()),
-        Err(err) => error::handle_error(error::Error::IoError(err.to_string())),
+        Err(err) => error::handle_error(Error::new(err.to_string(), ErrorType::IoError, None)),
     };
     None
 }
