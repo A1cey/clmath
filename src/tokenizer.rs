@@ -153,6 +153,7 @@ fn interpret_string_wo_withespaces(args: &str) -> Result<Vec<Token>, Error> {
                 return Err(Error::new(
                     format!("Tokenizer could not tokenize input: {}", args),
                     ErrorType::Tokenizer(TokenizerError::InvalidInput),
+                    None,
                     None
                 ));
             }
@@ -240,7 +241,7 @@ fn tokenize_as_num(arg: &str) -> Token {
     Token::Number(
         arg.replace(",", ".")
             .parse::<f64>()
-            .expect("This should be parsed because it is checked before to be a number"),
+            .expect("This should be tokenized because it is checked before to be a number."),
     )
 }
 
@@ -258,7 +259,7 @@ fn tokenize_as_func(arg: &str) -> Token {
         None => match HIGHER_ORDER_FUNC_KEYWORDS.get(arg) {
             Some(func) => Token::Func(Func::HigherOrder(func.clone())),
             None => panic!(
-                "This should not happen, because the keyword wass checked to be a function before."
+                "This should not happen, because the keyword was checked to be a function before."
             ),
         },
     }
@@ -478,6 +479,7 @@ mod tests {
             Err(Error::new(
                 "Tokenizer could not tokenize input: 7&".to_string(),
                 ErrorType::Tokenizer(TokenizerError::InvalidInput),
+                None,
                 None
             ))
         )
@@ -533,6 +535,7 @@ mod tests {
             Err(Error::new(
                 "Tokenizer could not tokenize input: var$".to_string(),
                 ErrorType::Tokenizer(TokenizerError::InvalidInput),
+                None,
                 None
             ))
         );
@@ -793,6 +796,7 @@ mod tests {
             Err(Error::new(
                 "Tokenizer could not tokenize input: var$".to_string(),
                 ErrorType::Tokenizer(TokenizerError::InvalidInput),
+                None,
                 None
             ))
         );

@@ -91,6 +91,7 @@ pub fn factorial(num: u32) -> Result<u32, Error> {
                 },
                 ErrorType::Func(FunctionError::FactorialError),
                 None,
+                None,
             ));
         }
 
@@ -117,6 +118,7 @@ pub fn addition(a: f64, b: f64) -> Result<f64, Error> {
             },
             ErrorType::Func(FunctionError::UnderflowInf),
             None,
+            None,
         )),
         result if result.is_infinite() => Err(Error::new(
             if a > 10000.0 || a < 0.00001 {
@@ -131,6 +133,7 @@ pub fn addition(a: f64, b: f64) -> Result<f64, Error> {
                 format!("The addition of {a} and {b} results in an overflow of the 64bit floating point range ({:e}) and can only be displayed as {}", f64::MAX, f64::INFINITY)
             },
             ErrorType::Func(FunctionError::OverflowInf),
+            None,
             None,
         )),
         result => Ok(result),
@@ -154,6 +157,7 @@ pub fn subtraction(a: f64, b: f64) -> Result<f64, Error> {
             },
             ErrorType::Func(FunctionError::UnderflowInf),
             None,
+            None,
         )),
         result if result.is_infinite() => Err(Error::new(
             if a > 10000.0 || a < 0.00001 {
@@ -168,6 +172,7 @@ pub fn subtraction(a: f64, b: f64) -> Result<f64, Error> {
                 format!("The subtraction of {a} and {b} results in an overflow of the 64bit floating point range ({:e}) and can only be displayed as {}", f64::MAX, f64::INFINITY)
             },
             ErrorType::Func(FunctionError::OverflowInf),
+            None,
             None,
         )),
         result => Ok(result),
@@ -201,6 +206,7 @@ pub fn multiplication(a: f64, b: f64) -> Result<f64, Error> {
             },
             ErrorType::Func(FunctionError::UnderflowInf),
             None,
+            None,
         )),
         result if result.is_infinite() => Err(Error::new(
             if a > 10000.0 || a < 0.00001 {
@@ -215,6 +221,7 @@ pub fn multiplication(a: f64, b: f64) -> Result<f64, Error> {
                 format!("The multiplication of {a} and {b} results in an overflow of the 64bit floating point range ({:e}) and can only be displayed as {}", f64::MAX, f64::INFINITY)
             },
             ErrorType::Func(FunctionError::OverflowInf),
+            None,
             None,
         )),
         result => Ok(result),
@@ -232,6 +239,7 @@ pub fn division(a: f64, b: f64) -> Result<f64, Error> {
             },
             ErrorType::Func(FunctionError::DivisionByZero),
             None,
+            None,
         )),
         result if result.is_sign_negative() && result.is_infinite() => Err(Error::new(
             if a > 10000.0 || a < 0.00001 {
@@ -247,6 +255,7 @@ pub fn division(a: f64, b: f64) -> Result<f64, Error> {
             },
             ErrorType::Func(FunctionError::UnderflowInf),
             None,
+            None,
         )),
         result if result.is_infinite() => Err(Error::new(
             if a > 10000.0 || a < 0.00001 {
@@ -261,6 +270,7 @@ pub fn division(a: f64, b: f64) -> Result<f64, Error> {
                 format!("The division of {} and {} results in an overflow of the 64bit floating point range ({:e}) and can only be displayed as {}",a,b, f64::MAX, f64::INFINITY)
             },
             ErrorType::Func(FunctionError::OverflowInf),
+            None,
             None,
         )),
         result => Ok(result),
@@ -279,6 +289,7 @@ mod tests {
         assert_eq!(factorial(500), Err(Error::new(
             "The factorial of this number (500) is too large to fit into the maximum range of a 32bit unsigned integer (4.294967295e9)".to_string(),
             ErrorType::Func(FunctionError::FactorialError),
+            None,
             None
         )));
     }
@@ -291,11 +302,13 @@ mod tests {
         assert_eq!(addition(f64::MIN, f64::MIN + 1.0),  Err(Error::new(
             format!("The addition of {:e} and {:e} results in an underflow of the 64bit floating point range ({:e}) and can only be displayed as {}",f64::MIN, f64::MIN +1.0, f64::MIN, f64::NEG_INFINITY),
             ErrorType::Func(FunctionError::UnderflowInf),
+            None,
             None
         )));
         assert_eq!(addition(f64::MAX, f64::MAX - 1.0), Err(Error::new(
             format!("The addition of {:e} and {:e} results in an overflow of the 64bit floating point range ({:e}) and can only be displayed as {}",f64::MAX, f64::MAX - 1.0, f64::MAX, f64::INFINITY),
             ErrorType::Func(FunctionError::OverflowInf),
+            None,
             None
         )));
     }

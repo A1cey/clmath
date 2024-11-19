@@ -1,3 +1,5 @@
+use std::io;
+
 pub fn handle_error(err: Error) {
     println!("There was a problem: {:?}", err.error);
 }
@@ -6,31 +8,47 @@ pub fn handle_error(err: Error) {
 pub struct Error {
     error: String,
     error_type: ErrorType,
-    idx: Option<usize>,
+    token_start_idx: Option<usize>,
+    curr_idx: Option<usize>,
 }
 
 impl Error {
-    pub fn new(error: String, error_type: ErrorType, idx: Option<usize>) -> Error {
+    pub fn new(
+        error: String,
+        error_type: ErrorType,
+        token_start_idx: Option<usize>,
+        curr_idx: Option<usize>,
+    ) -> Error {
         Error {
             error,
             error_type,
-            idx,
+            token_start_idx,
+            curr_idx,
         }
     }
 }
 
 #[derive(Debug, PartialEq)]
 pub enum ErrorType {
-    IoError,
+    IoError(IoError),
     Tokenizer(TokenizerError),
     Parser(ParserError),
     Func(FunctionError),
 }
 
 #[derive(Debug, PartialEq)]
+pub enum IoError {
+    InvalidUTF8,
+}
+
+#[derive(Debug, PartialEq)]
 pub enum TokenizerError {
     InvalidInputIndexing,
     InvalidInput,
+    InvalidFunctionName,
+    InvalidSymbol,
+    InvalidNumber,
+    EmptyToken,
 }
 
 #[derive(Debug, PartialEq)]
