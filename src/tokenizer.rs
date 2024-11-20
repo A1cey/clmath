@@ -154,7 +154,7 @@ fn interpret_string_wo_withespaces(args: &str) -> Result<Vec<Token>, Error> {
                     format!("Tokenizer could not tokenize input: {}", args),
                     ErrorType::Tokenizer(TokenizerError::InvalidInput),
                     None,
-                    None
+                    None,
                 ));
             }
         }
@@ -228,7 +228,7 @@ fn is_num<'a, T: Into<CharOrStr<'a>>>(arg: T) -> bool {
 }
 
 fn is_func(arg: &str) -> bool {
-    match ELEMENTARY_FUNC_KEYWORDS.get(arg) {
+    match ELEMENTARY_FUNC_KEYWORDS.get(&arg.chars().nth(0).unwrap()) {
         Some(_) => true,
         None => match HIGHER_ORDER_FUNC_KEYWORDS.get(arg) {
             Some(_) => true,
@@ -254,7 +254,7 @@ fn tokenize_as_var(arg: &str) -> Token {
 
 fn tokenize_as_func(arg: &str) -> Token {
     // search keyword in function list
-    match ELEMENTARY_FUNC_KEYWORDS.get(arg) {
+    match ELEMENTARY_FUNC_KEYWORDS.get(&arg.chars().nth(0).unwrap()) {
         Some(func) => Token::Func(Func::Elementary(func.clone())),
         None => match HIGHER_ORDER_FUNC_KEYWORDS.get(arg) {
             Some(func) => Token::Func(Func::HigherOrder(func.clone())),
@@ -414,7 +414,7 @@ mod tests {
     #[test]
     fn test_is_function() {
         for (keyword, _) in ELEMENTARY_FUNC_KEYWORDS.into_iter() {
-            assert!(is_func(keyword));
+            assert!(is_func(keyword.to_string().as_str()));
         }
         for (keyword, _) in HIGHER_ORDER_FUNC_KEYWORDS.into_iter() {
             assert!(is_func(keyword));
@@ -425,7 +425,7 @@ mod tests {
     fn test_tokenize_as_func() {
         for (keyword, func) in ELEMENTARY_FUNC_KEYWORDS.into_iter() {
             assert_eq!(
-                tokenize_as_func(keyword),
+                tokenize_as_func(keyword.to_string().as_str()),
                 Token::Func(Func::Elementary(func.clone()))
             );
         }

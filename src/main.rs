@@ -15,6 +15,8 @@ fn main() {
         return main();
     }
 
+    println!("{:?}", tokenizer2::tokenize(input.clone().unwrap()));
+
     match tokenizer::tokenize_input(input.unwrap())
         .and_then(|tokenized_input| parser::parse(&tokenized_input))
     {

@@ -12,14 +12,14 @@ pub enum Func {
     HigherOrder(HigherOrderFunc),
 }
 
-pub const ELEMENTARY_FUNC_KEYWORDS: phf::Map<&'static str, ElementaryFunc> = phf_map! {
-    "+" => ElementaryFunc::Addition,
-    "/" => ElementaryFunc::Division,
-    "%" => ElementaryFunc::Modulo,
-    "*" => ElementaryFunc::Multiplication,
-    "-" => ElementaryFunc::Subtraction,
-    "<" => ElementaryFunc::LessThan,
-    ">" => ElementaryFunc::GreaterThan,
+pub const ELEMENTARY_FUNC_KEYWORDS: phf::Map<char, ElementaryFunc> = phf_map! {
+    '+' => ElementaryFunc::Addition,
+    '/' => ElementaryFunc::Division,
+    '%' => ElementaryFunc::Modulo,
+    '*' => ElementaryFunc::Multiplication,
+    '-' => ElementaryFunc::Subtraction,
+    '<' => ElementaryFunc::LessThan,
+    '>' => ElementaryFunc::GreaterThan,
 };
 
 #[derive(Debug, PartialEq, Clone)]

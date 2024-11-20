@@ -28,7 +28,7 @@ impl Display for Variable {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-enum Token {
+pub enum Token {
     Function(Func),
     Number(f64),
     Variable(Variable),
@@ -38,7 +38,8 @@ enum Token {
 
 #[derive(Debug, PartialEq)]
 enum TokenType {
-    Function,
+    HigherOrderFunc,
+    ElementaryFunc,
     Number,
     Variable,
     Symbol,
@@ -51,9 +52,9 @@ enum Symbol {
     ClosingBracket,
 }
 
-const SYMBOLS: phf::Map<&'static str, Symbol> = phf_map! {
-    "(" => Symbol::OpeningBracket,
-    ")" => Symbol::ClosingBracket
+const SYMBOLS: phf::Map<char, Symbol> = phf_map! {
+    '(' => Symbol::OpeningBracket,
+    ')' => Symbol::ClosingBracket
 };
 
 enum CharOrStr<'a> {
@@ -118,11 +119,18 @@ impl Tokenizer {
                 .to_string();
 
             token = match self.curr_token_type {
+                TokenType::Empty => self.tokenize_empty(),
                 TokenType::Number => self.tokenize_number(&token_value),
                 TokenType::Variable => self.tokenize_variable(&token_value),
-                TokenType::Function => self.tokenize_function(&token_value),
-                TokenType::Symbol => self.tokenize_symbol(&token_value),
-                TokenType::Empty => self.tokenize_empty(),
+                TokenType::ElementaryFunc | TokenType::HigherOrderFunc => {
+                    self.tokenize_function(&token_value)
+                }
+                TokenType::Symbol => {
+                    if token_value.len() > 1 {
+                        panic!("Symbols can only be one char. This function should not be called with a string of more than one char.")
+                    }
+                    self.tokenize_symbol(&token_value.chars().nth(0).unwrap())
+                }
             };
         }
 
@@ -158,26 +166,43 @@ impl Tokenizer {
     }
 
     fn tokenize_function(&mut self, token_value: &str) -> Token {
-        match ELEMENTARY_FUNC_KEYWORDS.get(token_value) {
-            Some(func) => Token::Function(Func::Elementary(func.clone())),
-            None => match HIGHER_ORDER_FUNC_KEYWORDS.get(token_value) {
-                Some(func) => Token::Function(Func::HigherOrder(func.clone())),
-                None => {
+        match self.curr_token_type {
+            TokenType::ElementaryFunc => {
+                if token_value.len() > 1 {
+                    panic!("Elementary functions can only be one char. This function should not be called with a string of more than one char if the current token type is 'ElementaryFunc'.")
+                }
+
+                ELEMENTARY_FUNC_KEYWORDS.get(&token_value.chars().nth(0).unwrap()).map_or_else(
+                || {
                     self.add_error(TokenizerError::InvalidFunctionName, Some(token_value), None);
                     Token::Empty
-                }
-            },
+                },
+                |func| Token::Function(Func::Elementary(func.clone())),
+            )},
+
+            TokenType::HigherOrderFunc => HIGHER_ORDER_FUNC_KEYWORDS.get(token_value).map_or_else(
+                || {
+                    self.add_error(TokenizerError::InvalidFunctionName, Some(token_value), None);
+                    Token::Empty
+                },
+                |func| Token::Function(Func::HigherOrder(func.clone())),
+            ),
+            _ => panic!("This function should not be called, when the token type is not elementary or higher order function.")
         }
     }
 
-    fn tokenize_symbol(&mut self, token_value: &str) -> Token {
+    fn tokenize_symbol(&mut self, token_value: &char) -> Token {
         if let Some(symbol) = SYMBOLS.get(token_value) {
             match symbol {
                 Symbol::OpeningBracket => Token::Symbol(Symbol::OpeningBracket),
                 Symbol::ClosingBracket => Token::Symbol(Symbol::ClosingBracket),
             }
         } else {
-            self.add_error(TokenizerError::InvalidSymbol, Some(token_value), None);
+            self.add_error(
+                TokenizerError::InvalidSymbol,
+                Some(token_value.to_string().as_str()),
+                None,
+            );
             Token::Empty
         }
     }
@@ -229,12 +254,32 @@ impl Tokenizer {
     fn remove_empty_tokens(&mut self) {
         self.tokens.retain(|token| *token != Token::Empty);
     }
+
+    fn is_symbol(c: &char) -> bool {
+        SYMBOLS.contains_key(c)
+    }
+
+    fn is_elementary_function(c: &char) -> bool {
+        ELEMENTARY_FUNC_KEYWORDS.contains_key(c)
+    }
 }
 
-fn tokenize(input: String) -> Result<Vec<Token>, Vec<Error>> {
+pub fn tokenize(input: String) -> Result<Vec<Token>, Vec<Error>> {
     let mut tokenizer = Tokenizer::from(input);
 
-    while !tokenizer.is_done {}
+    while !tokenizer.is_done {
+        match tokenizer.get_char() {
+            c if Tokenizer::is_symbol(&c) => {
+                tokenizer.curr_token_type = TokenType::Symbol;
+                tokenizer.consume();
+            }
+            c if Tokenizer::is_elementary_function(&c) => {
+                tokenizer.curr_token_type = TokenType::ElementaryFunc;
+                tokenizer.consume();
+            }
+            _ => panic!("An Error occurred"),
+        }
+    }
 
     tokenizer.remove_empty_tokens();
 
