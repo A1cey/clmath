@@ -1,23 +1,21 @@
 use core::fmt::Display;
 use core::panic;
 use phf_macros::phf_map;
-use std::borrow::BorrowMut;
-use std::f32::NAN;
-use std::fmt::format;
-use std::io::Empty;
-use std::vec;
 
 use crate::error::{Error, ErrorType, TokenizerError};
 
-use crate::functions::{
-    ElementaryFunc, Func, ELEMENTARY_FUNC_KEYWORDS, HIGHER_ORDER_FUNC_KEYWORDS,
-};
-use crate::tokenizer;
+use crate::functions::{Func, ELEMENTARY_FUNC_KEYWORDS, HIGHER_ORDER_FUNC_KEYWORDS};
 
 #[derive(Debug, PartialEq, Clone)]
 struct Variable {
     name: String,
-    value: Option<isize>,
+    value: Option<f64>,
+}
+
+impl Variable {
+    pub fn new(name: String, value: Option<f64>) -> Variable {
+        Variable { name, value }
+    }
 }
 
 impl Display for Variable {
@@ -110,17 +108,22 @@ impl Tokenizer {
 
     fn consume(&mut self) -> Token {
         let token: Token;
+        if self.token_start_idx >= self.curr_idx || self.curr_idx >= self.input_len {
+            token = self.tokenize_empty();
+        } else {
+            let token_value = self
+                .input
+                .get(self.token_start_idx..self.curr_idx)
+                .unwrap()
+                .to_string();
 
-        if let Some(token_value) = self.input.get(self.token_start_idx..self.curr_idx) {
             token = match self.curr_token_type {
-                TokenType::Number => self.tokenize_number(token_value),
-                TokenType::Variable => self.tokenize_variable(token_value),
-                TokenType::Function => self.tokenize_function(token_value),
-                TokenType::Symbol => self.tokenize_symbol(token_value),
+                TokenType::Number => self.tokenize_number(&token_value),
+                TokenType::Variable => self.tokenize_variable(&token_value),
+                TokenType::Function => self.tokenize_function(&token_value),
+                TokenType::Symbol => self.tokenize_symbol(&token_value),
                 TokenType::Empty => self.tokenize_empty(),
             };
-        } else {
-            token = self.tokenize_empty()
         }
 
         self.step();
@@ -151,11 +154,9 @@ impl Tokenizer {
     }
 
     fn tokenize_variable(&self, token_value: &str) -> Token {
-        Token::Variable(Variable {
-            name: token_value.to_string(),
-            value: None,
-        })
+        Token::Variable(Variable::new(token_value.to_string(), None))
     }
+
     fn tokenize_function(&mut self, token_value: &str) -> Token {
         match ELEMENTARY_FUNC_KEYWORDS.get(token_value) {
             Some(func) => Token::Function(Func::Elementary(func.clone())),
