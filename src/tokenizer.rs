@@ -212,7 +212,7 @@ impl Tokenizer {
     ) {
         let error = match error_type {
             TokenizerError::UnrecognizedInput => {
-                format!("Input '{}' was not recognized.", self.input)
+                format!("Input '{}' was not recognized. '{}' is not a valid symbol.", self.input, token_value.unwrap())
             }
             TokenizerError::InvalidInputIndexing => {
                 "Invalid indexing into the provided input.".to_string()
@@ -333,11 +333,15 @@ impl Tokenizer {
 
                     self.consume();
                 }
-                c => self.add_error(
-                    TokenizerError::UnrecognizedInput,
-                    Some(c.to_string().as_str()),
-                    None,
-                ),
+                c => {
+                    self.add_error(
+                        TokenizerError::UnrecognizedInput,
+                        Some(c.to_string().as_str()),
+                        None,
+                    );
+                    self.curr_token_type = TokenType::Empty;
+                    self.consume();
+                }
             }
         }
 
