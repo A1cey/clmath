@@ -2,7 +2,6 @@ mod error;
 mod functions;
 mod parser;
 mod tokenizer;
-mod tokenizer2;
 
 use error::{Error, ErrorType, IoError};
 use std::io;
@@ -15,18 +14,10 @@ fn main() {
         return main();
     }
 
-    match tokenizer2::tokenize(input.unwrap())
-    .and_then(|tokens| parser::parse(&tokens)){
+    match tokenizer::tokenize(input.unwrap()).and_then(|tokens| parser::parse(&tokens)) {
         Ok(result) => println!("{}", result),
-        Err(err) => error::handle_errors(err)
+        Err(err) => error::handle_errors(err),
     };
-
-    // match tokenizer::tokenize_input(input.unwrap())
-    //     .and_then(|tokenized_input| parser::parse(&tokenized_input))
-    // {
-    //     Ok(result) => println!("{}", result),
-    //     Err(err) => error::handle_error(err),
-    // };
 
     return main();
 }
