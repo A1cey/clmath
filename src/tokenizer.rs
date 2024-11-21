@@ -9,7 +9,7 @@ use crate::functions::{
 };
 
 #[derive(Debug, PartialEq, Clone)]
-struct Variable {
+pub struct Variable {
     name: String,
     value: Option<f64>,
 }
@@ -17,6 +17,14 @@ struct Variable {
 impl Variable {
     pub fn new(name: String, value: Option<f64>) -> Variable {
         Variable { name, value }
+    }
+
+    pub fn name(&self) -> &String {
+        &self.name
+    }
+
+    pub fn value(&self) -> &Option<f64> {
+        &self.value
     }
 }
 
@@ -49,7 +57,7 @@ enum TokenType {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-enum Symbol {
+pub enum Symbol {
     OpeningBracket,
     ClosingBracket,
 }
