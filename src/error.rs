@@ -1,7 +1,7 @@
 use std::io;
 
-pub fn handle_error(err: Error) {
-    println!("There was a problem: {:?}", err.error);
+pub fn handle_errors(errors: Vec<Error>) {
+    errors.iter().for_each(|err| println!("{}", err.error));
 }
 
 #[derive(Debug, PartialEq)]
@@ -44,7 +44,7 @@ pub enum IoError {
 #[derive(Debug, PartialEq)]
 pub enum TokenizerError {
     InvalidInputIndexing,
-    InvalidInput,
+    UnrecognizedInput,
     InvalidFunctionName,
     InvalidSymbol,
     InvalidNumber,

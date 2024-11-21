@@ -53,12 +53,12 @@ pub const HIGHER_ORDER_FUNC_KEYWORDS: phf::Map<&'static str, HigherOrderFunc> = 
 };
 
 /// Returns true if the first number of the two provided 64bit floating point numbers is smaller than the second else false
-pub fn lessThan(a: f64, b: f64) -> bool {
+pub fn less_than(a: f64, b: f64) -> bool {
     a < b
 }
 
 /// Returns true if the first number of the two provided 64bit floating point numbers is greater than the second else false
-pub fn greaterThan(a: f64, b: f64) -> bool {
+pub fn greater_than(a: f64, b: f64) -> bool {
     a > b
 }
 
@@ -235,14 +235,14 @@ fn create_error(
                 error_message.push_str(format!("{}", second_num.unwrap()).as_str());
             }
             if error_type == FunctionError::OverflowInf {
-                error_message.push_str(format!("results in an overflow of the 64bit floating point range ({:e}) and can only be displayed as {}.", f64::MAX, f64::INFINITY).as_str());
+                error_message.push_str(format!(" results in an overflow of the 64bit floating point range ({:e}) and can only be displayed as {}.", f64::MAX, f64::INFINITY).as_str());
             } else {
-                error_message.push_str(format!("results in an underflow of the 64bit floating point range ({:e}) and can only be displayed as {}.", f64::MIN, f64::NEG_INFINITY).as_str());
+                error_message.push_str(format!(" results in an underflow of the 64bit floating point range ({:e}) and can only be displayed as {}.", f64::MIN, f64::NEG_INFINITY).as_str());
             }
 
             Error::new(
                 error_message,
-                ErrorType::Func(FunctionError::OverflowInf),
+                ErrorType::Func(error_type),
                 None,
                 None,
             )

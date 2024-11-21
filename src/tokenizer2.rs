@@ -4,7 +4,9 @@ use phf_macros::phf_map;
 
 use crate::error::{Error, ErrorType, TokenizerError};
 
-use crate::functions::{Func, ELEMENTARY_FUNC_KEYWORDS, HIGHER_ORDER_FUNC_KEYWORDS};
+use crate::functions::{
+    ElementaryFunc, Func, ELEMENTARY_FUNC_KEYWORDS, HIGHER_ORDER_FUNC_KEYWORDS,
+};
 
 #[derive(Debug, PartialEq, Clone)]
 struct Variable {
@@ -57,23 +59,6 @@ const SYMBOLS: phf::Map<char, Symbol> = phf_map! {
     ')' => Symbol::ClosingBracket
 };
 
-enum CharOrStr<'a> {
-    Char(char),
-    Str(&'a str),
-}
-
-impl<'a> From<char> for CharOrStr<'a> {
-    fn from(c: char) -> Self {
-        CharOrStr::Char(c)
-    }
-}
-
-impl<'a> From<&'a str> for CharOrStr<'a> {
-    fn from(s: &'a str) -> Self {
-        CharOrStr::Str(s)
-    }
-}
-
 struct Tokenizer {
     curr_idx: usize,
     token_start_idx: usize,
@@ -91,9 +76,9 @@ impl Tokenizer {
             curr_idx: 0,
             token_start_idx: 0,
             input_len: input.len(),
+            is_done: input.is_empty(),
             input,
             tokens: Vec::new(),
-            is_done: false,
             curr_token_type: TokenType::Empty,
             errors: Vec::new(),
         }
@@ -107,14 +92,18 @@ impl Tokenizer {
         }
     }
 
-    fn consume(&mut self) -> Token {
+    fn peek(&self) -> Option<char> {
+        self.input.chars().nth(self.curr_idx + 1)
+    }
+
+    fn consume(&mut self) {
         let token: Token;
-        if self.token_start_idx >= self.curr_idx || self.curr_idx >= self.input_len {
+        if self.token_start_idx > self.curr_idx || self.curr_idx >= self.input_len {
             token = self.tokenize_empty();
         } else {
             let token_value = self
                 .input
-                .get(self.token_start_idx..self.curr_idx)
+                .get(self.token_start_idx..=self.curr_idx)
                 .unwrap()
                 .to_string();
 
@@ -137,7 +126,7 @@ impl Tokenizer {
         self.step();
         self.token_start_idx = self.curr_idx;
 
-        token
+        self.tokens.push(token);
     }
 
     fn tokenize_empty(&mut self) -> Token {
@@ -214,22 +203,22 @@ impl Tokenizer {
         err_value: Option<String>,
     ) {
         let error = match error_type {
-            TokenizerError::InvalidInput => {
-                format!("Tokenizer could not tokenize input: {}", self.input)
+            TokenizerError::UnrecognizedInput => {
+                format!("Input '{}' was not recognized.", self.input)
             }
             TokenizerError::InvalidInputIndexing => {
                 "Invalid indexing into the provided input.".to_string()
             }
             TokenizerError::EmptyToken => "Tried to tokenize an empty token.".to_string(),
             TokenizerError::InvalidFunctionName => {
-                format!("{} is an invalid function name.", token_value.unwrap())
+                format!("'{}' is an invalid function name.", token_value.unwrap())
             }
             TokenizerError::InvalidSymbol => {
-                format!("{} is an invalid symbol.", token_value.unwrap())
+                format!("'{}' is an invalid symbol.", token_value.unwrap())
             }
             TokenizerError::InvalidNumber => {
                 format!(
-                    "{} is an invalid number, because \n{}",
+                    "'{}' is an invalid number, because:\n {}",
                     token_value.unwrap(),
                     err_value.unwrap()
                 )
@@ -244,7 +233,7 @@ impl Tokenizer {
         ))
     }
 
-    fn get_char(&mut self) -> char {
+    fn get_char(&self) -> char {
         match self.input.chars().nth(self.curr_idx) {
             Some(c) => c,
             None => panic!("The index should not be greater or equal to the length of the input. This should never happen.")
@@ -262,29 +251,100 @@ impl Tokenizer {
     fn is_elementary_function(c: &char) -> bool {
         ELEMENTARY_FUNC_KEYWORDS.contains_key(c)
     }
+
+    fn is_number(c: &char) -> bool {
+        c.is_numeric() || *c == ',' || *c == '.'
+    }
+
+    fn add_multiplications(&mut self) {
+        let mut multiplication_idx: Vec<usize> = vec![];
+
+        for (idx, token) in self.tokens.iter().enumerate() {
+            if idx + 1 != self.tokens.len() {
+                match token {
+                    Token::Number(_)
+                    | Token::Symbol(Symbol::ClosingBracket)
+                    | Token::Variable(_) => {
+                        match self.tokens.get(idx + 1).unwrap() {
+                            Token::Function(Func::HigherOrder(_))
+                            | Token::Number(_)
+                            | Token::Symbol(Symbol::OpeningBracket)
+                            | Token::Variable(_) => multiplication_idx.push(idx + 1),
+                            _ => (),
+                        };
+                    }
+                    _ => (),
+                };
+            }
+        }
+
+        for idx in multiplication_idx.iter().rev() {
+            self.tokens.insert(
+                *idx,
+                Token::Function(Func::Elementary(ElementaryFunc::Multiplication)),
+            );
+        }
+    }
+
+    fn run(&mut self) {
+        while !self.is_done {
+            match self.get_char() {
+                c if c.is_whitespace() => self.step(),
+                c if Tokenizer::is_symbol(&c) => {
+                    self.curr_token_type = TokenType::Symbol;
+                    self.consume();
+                }
+                c if Tokenizer::is_elementary_function(&c) => {
+                    self.curr_token_type = TokenType::ElementaryFunc;
+                    self.consume();
+                }
+                c if c.is_alphabetic() => {
+                    if c.is_uppercase() {
+                        self.curr_token_type = TokenType::HigherOrderFunc;
+                    } else {
+                        self.curr_token_type = TokenType::Variable;
+                    }
+
+                    while let Some(x) = self.peek() {
+                        if !x.is_alphabetic() {
+                            break;
+                        }
+
+                        self.step();
+                    }
+                    self.consume();
+                }
+                c if c.is_numeric() => {
+                    self.curr_token_type = TokenType::Number;
+                    while let Some(x) = self.peek() {
+                        if !Tokenizer::is_number(&x) {
+                            break;
+                        }
+                        self.step();
+                    }
+
+                    self.consume();
+                }
+                c => self.add_error(
+                    TokenizerError::UnrecognizedInput,
+                    Some(c.to_string().as_str()),
+                    None,
+                ),
+            }
+        }
+
+        self.remove_empty_tokens();
+        self.add_multiplications();
+    }
 }
 
 pub fn tokenize(input: String) -> Result<Vec<Token>, Vec<Error>> {
     let mut tokenizer = Tokenizer::from(input);
-
-    while !tokenizer.is_done {
-        match tokenizer.get_char() {
-            c if Tokenizer::is_symbol(&c) => {
-                tokenizer.curr_token_type = TokenType::Symbol;
-                tokenizer.consume();
-            }
-            c if Tokenizer::is_elementary_function(&c) => {
-                tokenizer.curr_token_type = TokenType::ElementaryFunc;
-                tokenizer.consume();
-            }
-            _ => panic!("An Error occurred"),
-        }
-    }
-
-    tokenizer.remove_empty_tokens();
+    tokenizer.run();
 
     if !tokenizer.errors.is_empty() {
         return Err(tokenizer.errors);
     }
+
     Ok(tokenizer.tokens)
 }

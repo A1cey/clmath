@@ -152,7 +152,7 @@ fn interpret_string_wo_withespaces(args: &str) -> Result<Vec<Token>, Error> {
             else {
                 return Err(Error::new(
                     format!("Tokenizer could not tokenize input: {}", args),
-                    ErrorType::Tokenizer(TokenizerError::InvalidInput),
+                    ErrorType::Tokenizer(TokenizerError::UnrecognizedInput),
                     None,
                     None,
                 ));
@@ -478,7 +478,7 @@ mod tests {
             interpret_string_wo_withespaces("7&"),
             Err(Error::new(
                 "Tokenizer could not tokenize input: 7&".to_string(),
-                ErrorType::Tokenizer(TokenizerError::InvalidInput),
+                ErrorType::Tokenizer(TokenizerError::UnrecognizedInput),
                 None,
                 None
             ))
@@ -534,7 +534,7 @@ mod tests {
             tokenize(vec!["var$"]),
             Err(Error::new(
                 "Tokenizer could not tokenize input: var$".to_string(),
-                ErrorType::Tokenizer(TokenizerError::InvalidInput),
+                ErrorType::Tokenizer(TokenizerError::UnrecognizedInput),
                 None,
                 None
             ))
@@ -795,7 +795,7 @@ mod tests {
             tokenize_input("var$".to_string()),
             Err(Error::new(
                 "Tokenizer could not tokenize input: var$".to_string(),
-                ErrorType::Tokenizer(TokenizerError::InvalidInput),
+                ErrorType::Tokenizer(TokenizerError::UnrecognizedInput),
                 None,
                 None
             ))

@@ -15,14 +15,18 @@ fn main() {
         return main();
     }
 
-    println!("{:?}", tokenizer2::tokenize(input.clone().unwrap()));
-
-    match tokenizer::tokenize_input(input.unwrap())
-        .and_then(|tokenized_input| parser::parse(&tokenized_input))
-    {
+    match tokenizer2::tokenize(input.unwrap())
+    .and_then(|tokens| parser::parse(&tokens)){
         Ok(result) => println!("{}", result),
-        Err(err) => error::handle_error(err),
+        Err(err) => error::handle_errors(err)
     };
+
+    // match tokenizer::tokenize_input(input.unwrap())
+    //     .and_then(|tokenized_input| parser::parse(&tokenized_input))
+    // {
+    //     Ok(result) => println!("{}", result),
+    //     Err(err) => error::handle_error(err),
+    // };
 
     return main();
 }
@@ -31,12 +35,12 @@ fn get_input() -> Option<String> {
     let mut input = String::new();
     match io::stdin().read_line(&mut input) {
         Ok(_) => return Some(input.trim().to_string()),
-        Err(err) => error::handle_error(Error::new(
+        Err(err) => error::handle_errors(vec![Error::new(
             err.to_string(),
             ErrorType::IoError(IoError::InvalidUTF8),
             None,
             None,
-        )),
+        )]),
     };
     None
 }
