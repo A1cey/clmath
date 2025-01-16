@@ -3,7 +3,7 @@ use std::{
     ops::{Add, Div, Mul, Rem, Sub},
 };
 
-use crate::error::{Error, ErrorType, FunctionError};
+use crate::error::{Error, FunctionError};
 use phf_macros::phf_map;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -206,7 +206,7 @@ fn create_error(
                 } else {
                     format!("You cannot divide by zero. You tried to divide {} by {} which has no result.", first_num, second_num.unwrap())
                 },
-                ErrorType::Func(FunctionError::DivisionByZero),
+                Box::new(FunctionError::DivisionByZero),
                 None,
                 None,
             )
@@ -217,7 +217,7 @@ fn create_error(
             } else {
                 format!("The factorial of this number ({}) is too large to fit into the maximum range of a 32bit unsigned integer ({:e}).", first_num, u32::MAX)
             },
-            ErrorType::Func(FunctionError::FactorialError),
+            Box::new(FunctionError::FactorialError),
             None,
             None,
         ),
@@ -234,18 +234,13 @@ fn create_error(
             } else {
                 error_message.push_str(format!("{}", second_num.unwrap()).as_str());
             }
-            if error_type == FunctionError::OverflowInf {
+            if matches!(error_type, FunctionError::OverflowInf) {
                 error_message.push_str(format!(" results in an overflow of the 64bit floating point range ({:e}) and can only be displayed as {}.", f64::MAX, f64::INFINITY).as_str());
             } else {
                 error_message.push_str(format!(" results in an underflow of the 64bit floating point range ({:e}) and can only be displayed as {}.", f64::MIN, f64::NEG_INFINITY).as_str());
             }
 
-            Error::new(
-                error_message,
-                ErrorType::Func(error_type),
-                None,
-                None,
-            )
+            Error::new(error_message, Box::new(error_type), None, None)
         }
     }
 }
@@ -253,36 +248,31 @@ fn create_error(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::error::*;
 
     #[test]
     fn test_factorial() {
-        assert_eq!(factorial(0), Ok(1));
-        assert_eq!(factorial(5), Ok(120));
-        assert_eq!(factorial(500), Err(Error::new(
-            "The factorial of this number (500) is too large to fit into the maximum range of a 32bit unsigned integer (4.294967295e9).".to_string(),
-            ErrorType::Func(FunctionError::FactorialError),
-            None,
-            None
-        )));
+        assert_eq!(factorial(0).unwrap(), 1);
+        assert_eq!(factorial(5).unwrap(), 120);
+        let err = factorial(500).unwrap_err();
+        assert_eq!(err.error, "The factorial of this number (500) is too large to fit into the maximum range of a 32bit unsigned integer (4.294967295e9).".to_string());
+        assert_eq!(err.curr_idx, None);
+        assert_eq!(err.token_start_idx, None);
     }
 
     #[test]
     fn test_addition() {
-        assert_eq!(addition(5.0, 5.0), Ok(10.0));
-        assert_eq!(addition(-5.0, 5.0), Ok(0.0));
-        assert_eq!(addition(-5.0, -5.0), Ok(-10.0));
-        assert_eq!(addition(f64::MIN, f64::MIN + 1.0),  Err(Error::new(
-            format!("The addition of {:e} and {:e} results in an underflow of the 64bit floating point range ({:e}) and can only be displayed as {}.",f64::MIN, f64::MIN +1.0, f64::MIN, f64::NEG_INFINITY),
-            ErrorType::Func(FunctionError::UnderflowInf),
-            None,
-            None
-        )));
-        assert_eq!(addition(f64::MAX, f64::MAX - 1.0), Err(Error::new(
-            format!("The addition of {:e} and {:e} results in an overflow of the 64bit floating point range ({:e}) and can only be displayed as {}.",f64::MAX, f64::MAX - 1.0, f64::MAX, f64::INFINITY),
-            ErrorType::Func(FunctionError::OverflowInf),
-            None,
-            None
-        )));
+        assert_eq!(addition(5.0, 5.0).unwrap(), 10.0);
+        assert_eq!(addition(-5.0, 5.0).unwrap(), 0.0);
+        assert_eq!(addition(-5.0, -5.0).unwrap(), -10.0);
+
+        let err = addition(f64::MIN, f64::MIN + 1.0).unwrap_err();
+        assert_eq!(err.error, format!("The addition of {:e} and {:e} results in an underflow of the 64bit floating point range ({:e}) and can only be displayed as {}.",f64::MIN, f64::MIN +1.0, f64::MIN, f64::NEG_INFINITY));
+        assert_eq!(err.curr_idx, None);
+        assert_eq!(err.token_start_idx, None);
+
+        let err = addition(f64::MAX, f64::MAX - 1.0).unwrap_err();
+        assert_eq!(err.error, format!("The addition of {:e} and {:e} results in an overflow of the 64bit floating point range ({:e}) and can only be displayed as {}.",f64::MAX, f64::MAX - 1.0, f64::MAX, f64::INFINITY));
+        assert_eq!(err.curr_idx, None);
+        assert_eq!(err.token_start_idx, None);
     }
 }

@@ -2,7 +2,7 @@ use core::fmt::Display;
 use core::panic;
 use phf_macros::phf_map;
 
-use crate::error::{Error, ErrorType, TokenizerError};
+use crate::error::{Error, TokenizerError};
 
 use crate::functions::{
     ElementaryFunc, Func, ELEMENTARY_FUNC_KEYWORDS, HIGHER_ORDER_FUNC_KEYWORDS,
@@ -10,21 +10,13 @@ use crate::functions::{
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Variable {
-    name: String,
-    value: Option<f64>,
+    pub name: String,
+    pub value: Option<f64>,
 }
 
 impl Variable {
     pub fn new(name: String, value: Option<f64>) -> Variable {
         Variable { name, value }
-    }
-
-    pub fn name(&self) -> &String {
-        &self.name
-    }
-
-    pub fn value(&self) -> &Option<f64> {
-        &self.value
     }
 }
 
@@ -212,11 +204,13 @@ impl Tokenizer {
     ) {
         let error = match error_type {
             TokenizerError::UnrecognizedInput => {
-                format!("Input '{}' was not recognized. '{}' is not a valid symbol.", self.input, token_value.unwrap())
+                format!(
+                    "Input '{}' was not recognized. '{}' is not a valid symbol.",
+                    self.input,
+                    token_value.unwrap()
+                )
             }
-            TokenizerError::InvalidInputIndexing => {
-                "Invalid indexing into the provided input.".to_string()
-            }
+
             TokenizerError::EmptyToken => "Tried to tokenize an empty token.".to_string(),
             TokenizerError::InvalidFunctionName => {
                 format!("'{}' is an invalid function name.", token_value.unwrap())
@@ -235,7 +229,7 @@ impl Tokenizer {
 
         self.errors.push(Error::new(
             error,
-            ErrorType::Tokenizer(error_type),
+            Box::new(error_type),
             Some(self.token_start_idx),
             Some(self.curr_idx),
         ))
