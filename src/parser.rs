@@ -1,4 +1,4 @@
-use crate::error::Error;
+use crate::error::ParserError;
 use crate::functions::ElementaryFunc;
 use crate::functions::HigherOrderFunc;
 use crate::tokenizer::Symbol;
@@ -64,13 +64,11 @@ impl Parser {
         }
     }
 
-    pub fn parse(tokens: Vec<Token>) -> Result<Expression, Vec<Error>> {
-        Parser::from(tokens)
-            .expression()
-            .map_err(|err| vec![Error::new("Error while parsing.".into(), err, None, None)])
+    pub fn parse(tokens: Vec<Token>) -> Result<Expression, ParserError> {
+        Parser::from(tokens).expression()
     }
 
-    fn expression(&mut self) -> Result<Expression, Box<dyn std::error::Error>> {
+    fn expression(&mut self) -> Result<Expression, ParserError> {
         let expression = if let Some(first_token) = self.tokens.front() {
             match first_token {
                 Token::Symbol(Symbol::OpeningBracket) => {
@@ -85,11 +83,11 @@ impl Parser {
         Ok(expression)
     }
 
-    fn bracketed_expression(&mut self) -> Result<BracketedExpression, Box<dyn std::error::Error>> {
+    fn bracketed_expression(&mut self) -> Result<BracketedExpression, ParserError> {
         todo!()
     }
 
-    fn math_expression(&mut self) -> Result<MathExpression, Box<dyn std::error::Error>> {
+    fn math_expression(&mut self) -> Result<MathExpression, ParserError> {
         todo!()
     }
 }

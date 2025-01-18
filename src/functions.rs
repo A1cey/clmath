@@ -3,7 +3,7 @@ use std::{
     ops::{Add, Div, Mul, Rem, Sub},
 };
 
-use crate::error::{Error, FunctionError};
+use crate::error::{FunctionError, FunctionErrorType};
 use phf_macros::phf_map;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -78,7 +78,7 @@ pub fn maximum(a: f64, b: f64) -> f64 {
 }
 
 /// Calculates the factorial of a 32bit unsigned integer
-pub fn factorial(num: u32) -> Result<u32, Error> {
+pub fn factorial(num: u32) -> Result<u32, FunctionError> {
     let mut val = num;
     let mut result = 1;
 
@@ -87,7 +87,7 @@ pub fn factorial(num: u32) -> Result<u32, Error> {
 
         if result > u32::MAX / (val - 1) {
             return Err(create_error(
-                FunctionError::FactorialError,
+                FunctionErrorType::FactorialError,
                 num.into(),
                 None,
                 None,
@@ -101,16 +101,16 @@ pub fn factorial(num: u32) -> Result<u32, Error> {
 }
 
 /// Calculates the sum of two 64bit floating point numbers
-pub fn addition(a: f64, b: f64) -> Result<f64, Error> {
+pub fn addition(a: f64, b: f64) -> Result<f64, FunctionError> {
     match a.add(b) {
         result if result.is_sign_negative() && result.is_infinite() => Err(create_error(
-            FunctionError::UnderflowInf,
+            FunctionErrorType::UnderflowInf,
             a,
             Some(b),
             Some("addition"),
         )),
         result if result.is_infinite() => Err(create_error(
-            FunctionError::OverflowInf,
+            FunctionErrorType::OverflowInf,
             a,
             Some(b),
             Some("addition"),
@@ -120,16 +120,16 @@ pub fn addition(a: f64, b: f64) -> Result<f64, Error> {
 }
 
 /// Calculates the difference of two 64bit floating point numbers
-pub fn subtraction(a: f64, b: f64) -> Result<f64, Error> {
+pub fn subtraction(a: f64, b: f64) -> Result<f64, FunctionError> {
     match a.sub(b) {
         result if result.is_sign_negative() && result.is_infinite() => Err(create_error(
-            FunctionError::UnderflowInf,
+            FunctionErrorType::UnderflowInf,
             a,
             Some(b),
             Some("subtraction"),
         )),
         result if result.is_infinite() => Err(create_error(
-            FunctionError::OverflowInf,
+            FunctionErrorType::OverflowInf,
             a,
             Some(b),
             Some("subtraction"),
@@ -149,16 +149,16 @@ pub fn modulo_euclid(a: f64, n: f64) -> f64 {
 }
 
 /// Calculates the product of two 64bit floating point numbers
-pub fn multiplication(a: f64, b: f64) -> Result<f64, Error> {
+pub fn multiplication(a: f64, b: f64) -> Result<f64, FunctionError> {
     match a.mul(b) {
         result if result.is_sign_negative() && result.is_infinite() => Err(create_error(
-            FunctionError::UnderflowInf,
+            FunctionErrorType::UnderflowInf,
             a,
             Some(b),
             Some("multiplication"),
         )),
         result if result.is_infinite() => Err(create_error(
-            FunctionError::OverflowInf,
+            FunctionErrorType::OverflowInf,
             a,
             Some(b),
             Some("multiplication"),
@@ -168,22 +168,22 @@ pub fn multiplication(a: f64, b: f64) -> Result<f64, Error> {
 }
 
 /// Calculates the quotient of two 64bit floating point numbers
-pub fn division(a: f64, b: f64) -> Result<f64, Error> {
+pub fn division(a: f64, b: f64) -> Result<f64, FunctionError> {
     match a.div(b) {
         result if result.is_nan() => Err(create_error(
-            FunctionError::DivisionByZero,
+            FunctionErrorType::DivisionByZero,
             a,
             Some(b),
             None,
         )),
         result if result.is_sign_negative() && result.is_infinite() => Err(create_error(
-            FunctionError::UnderflowInf,
+            FunctionErrorType::UnderflowInf,
             a,
             Some(b),
             Some("division"),
         )),
         result if result.is_infinite() => Err(create_error(
-            FunctionError::OverflowInf,
+            FunctionErrorType::OverflowInf,
             a,
             Some(b),
             Some("division"),
@@ -193,35 +193,31 @@ pub fn division(a: f64, b: f64) -> Result<f64, Error> {
 }
 
 fn create_error(
-    error_type: FunctionError,
+    error_type: FunctionErrorType,
     first_num: f64,
     second_num: Option<f64>,
     operation_name: Option<&str>,
-) -> Error {
+) -> FunctionError {
     match error_type {
-        FunctionError::DivisionByZero => {
-            Error::new(
+        FunctionErrorType::DivisionByZero => {
+            FunctionError::new(
                 if first_num > 10000.0 || first_num < 0.00001 {
                     format!("You cannot divide by zero. You tried to divide {:e} by {} which has no result.", first_num, second_num.unwrap())
                 } else {
                     format!("You cannot divide by zero. You tried to divide {} by {} which has no result.", first_num, second_num.unwrap())
                 },
-                Box::new(FunctionError::DivisionByZero),
-                None,
-                None,
+                FunctionErrorType::DivisionByZero
             )
         }
-        FunctionError::FactorialError => Error::new(
+        FunctionErrorType::FactorialError => FunctionError::new(
             if first_num > 10000.0 {
                 format!("The factorial of this number ({:e}) is too large to fit into the maximum range of a 32bit unsigned integer ({:e}).", first_num, u32::MAX)
             } else {
                 format!("The factorial of this number ({}) is too large to fit into the maximum range of a 32bit unsigned integer ({:e}).", first_num, u32::MAX)
             },
-            Box::new(FunctionError::FactorialError),
-            None,
-            None,
+            FunctionErrorType::FactorialError,
         ),
-        FunctionError::OverflowInf | FunctionError::UnderflowInf => {
+        FunctionErrorType::OverflowInf | FunctionErrorType::UnderflowInf => {
             let mut error_message = format!("The {} of ", operation_name.unwrap());
             if first_num > 10000.0 || first_num < 0.00001 {
                 error_message.push_str(format!("{:e}", first_num).as_str());
@@ -234,13 +230,13 @@ fn create_error(
             } else {
                 error_message.push_str(format!("{}", second_num.unwrap()).as_str());
             }
-            if matches!(error_type, FunctionError::OverflowInf) {
+            if matches!(error_type, FunctionErrorType::OverflowInf) {
                 error_message.push_str(format!(" results in an overflow of the 64bit floating point range ({:e}) and can only be displayed as {}.", f64::MAX, f64::INFINITY).as_str());
             } else {
                 error_message.push_str(format!(" results in an underflow of the 64bit floating point range ({:e}) and can only be displayed as {}.", f64::MIN, f64::NEG_INFINITY).as_str());
             }
 
-            Error::new(error_message, Box::new(error_type), None, None)
+            FunctionError::new(error_message, error_type)
         }
     }
 }
@@ -255,8 +251,6 @@ mod tests {
         assert_eq!(factorial(5).unwrap(), 120);
         let err = factorial(500).unwrap_err();
         assert_eq!(err.error, "The factorial of this number (500) is too large to fit into the maximum range of a 32bit unsigned integer (4.294967295e9).".to_string());
-        assert_eq!(err.curr_idx, None);
-        assert_eq!(err.token_start_idx, None);
     }
 
     #[test]
@@ -267,12 +261,8 @@ mod tests {
 
         let err = addition(f64::MIN, f64::MIN + 1.0).unwrap_err();
         assert_eq!(err.error, format!("The addition of {:e} and {:e} results in an underflow of the 64bit floating point range ({:e}) and can only be displayed as {}.",f64::MIN, f64::MIN +1.0, f64::MIN, f64::NEG_INFINITY));
-        assert_eq!(err.curr_idx, None);
-        assert_eq!(err.token_start_idx, None);
 
         let err = addition(f64::MAX, f64::MAX - 1.0).unwrap_err();
         assert_eq!(err.error, format!("The addition of {:e} and {:e} results in an overflow of the 64bit floating point range ({:e}) and can only be displayed as {}.",f64::MAX, f64::MAX - 1.0, f64::MAX, f64::INFINITY));
-        assert_eq!(err.curr_idx, None);
-        assert_eq!(err.token_start_idx, None);
     }
 }

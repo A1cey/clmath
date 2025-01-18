@@ -1,23 +1,43 @@
-pub fn handle_errors(errors: Vec<Error>) {
-    errors.iter().for_each(|err| println!("{}", err.error));
+use std::{error::Error, fmt::Debug};
+
+pub fn handle_errors(errors: Vec<impl Error>) {
+    errors.iter().for_each(|err| println!("{:?}", err));
+}
+
+pub fn handle_error(error: impl Error) {
+    println!("{:?}", error);
 }
 
 #[derive(Debug)]
-pub struct Error {
-    pub error: String,
-    pub error_type: Box<dyn std::error::Error>,
-    pub token_start_idx: Option<usize>,
-    pub curr_idx: Option<usize>,
+pub enum IoError {
+    InvalidUTF8(String),
 }
 
-impl Error {
+#[derive(Debug)]
+pub enum TokenizerErrorType {
+    UnrecognizedInput,
+    InvalidFunctionName,
+    InvalidSymbol,
+    InvalidNumber,
+    EmptyToken,
+}
+
+#[derive(Debug)]
+pub struct TokenizerError {
+    pub error: String,
+    pub error_type: TokenizerErrorType,
+    pub token_start_idx: usize,
+    pub curr_idx: usize,
+}
+
+impl TokenizerError {
     pub fn new(
         error: String,
-        error_type: Box<dyn std::error::Error>,
-        token_start_idx: Option<usize>,
-        curr_idx: Option<usize>,
-    ) -> Error {
-        Error {
+        error_type: TokenizerErrorType,
+        token_start_idx: usize,
+        curr_idx: usize,
+    ) -> Self {
+        Self {
             error,
             error_type,
             token_start_idx,
@@ -27,31 +47,30 @@ impl Error {
 }
 
 #[derive(Debug)]
-pub enum IoError {
-    InvalidUTF8,
-}
-
-#[derive(Debug)]
-pub enum TokenizerError {
-    UnrecognizedInput,
-    InvalidFunctionName,
-    InvalidSymbol,
-    InvalidNumber,
-    EmptyToken,
-}
-
-#[derive(Debug)]
 pub enum ParserError {
     ParserError,
 }
 
 #[derive(Debug)]
-pub enum FunctionError {
+pub enum FunctionErrorType {
     FactorialError,
     DivisionByZero,
     OverflowInf,
     UnderflowInf,
 }
+
+#[derive(Debug)]
+pub struct FunctionError {
+    pub error: String,
+    pub error_type: FunctionErrorType
+}
+
+impl FunctionError {
+    pub fn new(error: String, error_type: FunctionErrorType) -> Self {
+        Self {error, error_type}
+    }
+}
+
 
 impl std::fmt::Display for IoError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

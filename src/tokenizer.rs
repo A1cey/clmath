@@ -2,7 +2,7 @@ use core::fmt::Display;
 use core::panic;
 use phf_macros::phf_map;
 
-use crate::error::{Error, TokenizerError};
+use crate::error::{TokenizerError, TokenizerErrorType};
 
 use crate::functions::{
     ElementaryFunc, Func, ELEMENTARY_FUNC_KEYWORDS, HIGHER_ORDER_FUNC_KEYWORDS,
@@ -67,7 +67,7 @@ struct Tokenizer {
     tokens: Vec<Token>,
     curr_token_type: TokenType,
     is_done: bool,
-    errors: Vec<Error>,
+    errors: Vec<TokenizerError>,
 }
 
 impl Tokenizer {
@@ -130,7 +130,7 @@ impl Tokenizer {
     }
 
     fn tokenize_empty(&mut self) -> Token {
-        self.add_error(TokenizerError::EmptyToken, None, None);
+        self.add_error(TokenizerErrorType::EmptyToken, None, None);
         Token::Empty
     }
 
@@ -141,7 +141,7 @@ impl Tokenizer {
                 .parse::<f64>()
                 .unwrap_or_else(|err| {
                     self.add_error(
-                        TokenizerError::InvalidNumber,
+                        TokenizerErrorType::InvalidNumber,
                         Some(token_value),
                         Some(err.to_string()),
                     );
@@ -163,7 +163,7 @@ impl Tokenizer {
 
                 ELEMENTARY_FUNC_KEYWORDS.get(&token_value.chars().nth(0).unwrap()).map_or_else(
                 || {
-                    self.add_error(TokenizerError::InvalidFunctionName, Some(token_value), None);
+                    self.add_error(TokenizerErrorType::InvalidFunctionName, Some(token_value), None);
                     Token::Empty
                 },
                 |func| Token::Function(Func::Elementary(func.clone())),
@@ -171,7 +171,7 @@ impl Tokenizer {
 
             TokenType::HigherOrderFunc => HIGHER_ORDER_FUNC_KEYWORDS.get(token_value).map_or_else(
                 || {
-                    self.add_error(TokenizerError::InvalidFunctionName, Some(token_value), None);
+                    self.add_error(TokenizerErrorType::InvalidFunctionName, Some(token_value), None);
                     Token::Empty
                 },
                 |func| Token::Function(Func::HigherOrder(func.clone())),
@@ -188,7 +188,7 @@ impl Tokenizer {
             }
         } else {
             self.add_error(
-                TokenizerError::InvalidSymbol,
+                TokenizerErrorType::InvalidSymbol,
                 Some(token_value.to_string().as_str()),
                 None,
             );
@@ -198,12 +198,12 @@ impl Tokenizer {
 
     fn add_error(
         &mut self,
-        error_type: TokenizerError,
+        error_type: TokenizerErrorType,
         token_value: Option<&str>,
         err_value: Option<String>,
     ) {
         let error = match error_type {
-            TokenizerError::UnrecognizedInput => {
+            TokenizerErrorType::UnrecognizedInput => {
                 format!(
                     "Input '{}' was not recognized. '{}' is not a valid symbol.",
                     self.input,
@@ -211,14 +211,14 @@ impl Tokenizer {
                 )
             }
 
-            TokenizerError::EmptyToken => "Tried to tokenize an empty token.".to_string(),
-            TokenizerError::InvalidFunctionName => {
+            TokenizerErrorType::EmptyToken => "Tried to tokenize an empty token.".to_string(),
+            TokenizerErrorType::InvalidFunctionName => {
                 format!("'{}' is an invalid function name.", token_value.unwrap())
             }
-            TokenizerError::InvalidSymbol => {
+            TokenizerErrorType::InvalidSymbol => {
                 format!("'{}' is an invalid symbol.", token_value.unwrap())
             }
-            TokenizerError::InvalidNumber => {
+            TokenizerErrorType::InvalidNumber => {
                 format!(
                     "'{}' is an invalid number, because:\n {}",
                     token_value.unwrap(),
@@ -227,11 +227,11 @@ impl Tokenizer {
             }
         };
 
-        self.errors.push(Error::new(
+        self.errors.push(TokenizerError::new(
             error,
-            Box::new(error_type),
-            Some(self.token_start_idx),
-            Some(self.curr_idx),
+            error_type,
+            self.token_start_idx,
+            self.curr_idx,
         ))
     }
 
@@ -329,7 +329,7 @@ impl Tokenizer {
                 }
                 c => {
                     self.add_error(
-                        TokenizerError::UnrecognizedInput,
+                        TokenizerErrorType::UnrecognizedInput,
                         Some(c.to_string().as_str()),
                         None,
                     );
@@ -344,7 +344,7 @@ impl Tokenizer {
     }
 }
 
-pub fn tokenize(input: String) -> Result<Vec<Token>, Vec<Error>> {
+pub fn tokenize(input: String) -> Result<Vec<Token>, Vec<TokenizerError>> {
     let mut tokenizer = Tokenizer::from(input);
 
     tokenizer.run();
