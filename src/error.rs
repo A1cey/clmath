@@ -48,7 +48,10 @@ impl TokenizerError {
 
 #[derive(Debug)]
 pub enum ParserError {
-    ParserError,
+    ExpectedMathExpression,
+    ExpressionEmpty,
+    ExpectedOpeningBracket,
+    ExpectedClosingBracket
 }
 
 #[derive(Debug)]
@@ -62,15 +65,14 @@ pub enum FunctionErrorType {
 #[derive(Debug)]
 pub struct FunctionError {
     pub error: String,
-    pub error_type: FunctionErrorType
+    pub error_type: FunctionErrorType,
 }
 
 impl FunctionError {
     pub fn new(error: String, error_type: FunctionErrorType) -> Self {
-        Self {error, error_type}
+        Self { error, error_type }
     }
 }
-
 
 impl std::fmt::Display for IoError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

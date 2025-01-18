@@ -35,21 +35,31 @@ pub enum ElementaryFunc {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum HigherOrderFunc {
-    Derivative,
-    Factorial,
-    EucleadianModulo,
-    Minimum,
-    Maximum,
-    Absolute,
+    Factorial { num_of_params: u8 },
+    EucleadianModulo { num_of_params: u8 },
+    Minimum { num_of_params: u8 },
+    Maximum { num_of_params: u8 },
+    Absolute { num_of_params: u8 },
+}
+
+impl HigherOrderFunc {
+    pub fn get_param_count(&self) -> &u8 {
+        match self {
+            HigherOrderFunc::Absolute { num_of_params }
+            | HigherOrderFunc::Factorial { num_of_params }
+            | HigherOrderFunc::Maximum { num_of_params }
+            | HigherOrderFunc::Minimum { num_of_params }
+            | HigherOrderFunc::EucleadianModulo { num_of_params } => num_of_params,
+        }
+    }
 }
 
 pub const HIGHER_ORDER_FUNC_KEYWORDS: phf::Map<&'static str, HigherOrderFunc> = phf_map! {
-    "Der" => HigherOrderFunc::Derivative,
-    "Fac" => HigherOrderFunc::Factorial,
-    "EMod" => HigherOrderFunc::EucleadianModulo,
-    "Min" => HigherOrderFunc::Minimum,
-    "Max" => HigherOrderFunc::Maximum,
-    "Abs" => HigherOrderFunc::Absolute
+    "Fac" => HigherOrderFunc::Factorial{num_of_params: 1},
+    "EMod" => HigherOrderFunc::EucleadianModulo{num_of_params: 2},
+    "Min" => HigherOrderFunc::Minimum{num_of_params: 2},
+    "Max" => HigherOrderFunc::Maximum{num_of_params: 2},
+    "Abs" => HigherOrderFunc::Absolute{num_of_params: 1}
 };
 
 /// Returns true if the first number of the two provided 64bit floating point numbers is smaller than the second else false
@@ -206,7 +216,7 @@ fn create_error(
                 } else {
                     format!("You cannot divide by zero. You tried to divide {} by {} which has no result.", first_num, second_num.unwrap())
                 },
-                FunctionErrorType::DivisionByZero
+                FunctionErrorType::DivisionByZero,
             )
         }
         FunctionErrorType::FactorialError => FunctionError::new(

@@ -3,7 +3,7 @@ mod functions;
 mod parser;
 mod tokenizer;
 
-use error::{IoError};
+use error::IoError;
 use std::io;
 
 fn main() {

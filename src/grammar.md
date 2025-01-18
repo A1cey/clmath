@@ -10,10 +10,10 @@ Any amount of whitespaces between every Terminal or Non-Terminal are allowed and
 
     VARIABLE ::= [a-z][a-zA-Z]*
 
-    FUNCTION ::= LOWER_ORDER_FUNCTION | HIGHER_ORDER_FUNCTION
+    FUNCTION ::= ELEMENTARY_FUNCTION | HIGHER_ORDER_FUNCTION
 
-    LOWER_ORDER_FUNCTION ::= EXPRESSION LOWER_ORDER_FUNCTION_KEYWORD EXPRESSION
-    LOWER_ORDER_FUNCTION_KEYWORD ::= [A-Z][a-zA-Z]*                             // Function Keywords are predefined
+    ELEMENTARY_FUNCTION ::= EXPRESSION ELEMENTARY_FUNCTION_KEYWORD EXPRESSION
+    ELEMENTARY_FUNCTION_KEYWORD ::= [A-Z][a-zA-Z]*                             // Function Keywords are predefined
 
     HIGHER_ORDER_FUNCTION ::= HIGHER_ORDER_FUNCTION_KEYWORD ( EXPRESSION )
     HIGHER_ORDER_FUNCTION_KEYWORD ::= [A-Z][a-zA-Z]*                            // Function Keywords are predefined
