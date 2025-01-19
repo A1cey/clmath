@@ -2,7 +2,7 @@ use core::fmt::Display;
 use core::panic;
 use phf_macros::phf_map;
 
-use crate::error::{TokenizerError, TokenizerErrorType};
+use crate::error::{CLMathError, TokenizerError, TokenizerErrorType};
 
 use crate::functions::{
     ElementaryFunc, Func, ELEMENTARY_FUNC_KEYWORDS, HIGHER_ORDER_FUNC_KEYWORDS,
@@ -52,11 +52,13 @@ enum TokenType {
 pub enum Symbol {
     OpeningBracket,
     ClosingBracket,
+    Comma,
 }
 
 const SYMBOLS: phf::Map<char, Symbol> = phf_map! {
     '(' => Symbol::OpeningBracket,
-    ')' => Symbol::ClosingBracket
+    ')' => Symbol::ClosingBracket,
+    ',' => Symbol::Comma
 };
 
 struct Tokenizer {
@@ -87,7 +89,7 @@ impl Tokenizer {
     fn step(&mut self) {
         self.curr_idx += 1;
 
-        if self.input_len == self.curr_idx.into() {
+        if self.input_len == self.curr_idx {
             self.is_done = true;
         }
     }
@@ -97,9 +99,8 @@ impl Tokenizer {
     }
 
     fn consume(&mut self) {
-        let token: Token;
-        if self.token_start_idx > self.curr_idx || self.curr_idx >= self.input_len {
-            token = self.tokenize_empty();
+        let token = if self.token_start_idx > self.curr_idx || self.curr_idx >= self.input_len {
+            self.tokenize_empty()
         } else {
             let token_value = self
                 .input
@@ -107,7 +108,7 @@ impl Tokenizer {
                 .unwrap()
                 .to_string();
 
-            token = match self.curr_token_type {
+            match self.curr_token_type {
                 TokenType::Empty => self.tokenize_empty(),
                 TokenType::Number => self.tokenize_number(&token_value),
                 TokenType::Variable => self.tokenize_variable(&token_value),
@@ -120,8 +121,8 @@ impl Tokenizer {
                     }
                     self.tokenize_symbol(&token_value.chars().nth(0).unwrap())
                 }
-            };
-        }
+            }
+        };
 
         self.step();
         self.token_start_idx = self.curr_idx;
@@ -137,7 +138,6 @@ impl Tokenizer {
     fn tokenize_number(&mut self, token_value: &str) -> Token {
         Token::Number(
             token_value
-                .replace(",", ".")
                 .parse::<f64>()
                 .unwrap_or_else(|err| {
                     self.add_error(
@@ -185,6 +185,7 @@ impl Tokenizer {
             match symbol {
                 Symbol::OpeningBracket => Token::Symbol(Symbol::OpeningBracket),
                 Symbol::ClosingBracket => Token::Symbol(Symbol::ClosingBracket),
+                Symbol::Comma => Token::Symbol(Symbol::Comma),
             }
         } else {
             self.add_error(
@@ -255,7 +256,7 @@ impl Tokenizer {
     }
 
     fn is_number(c: &char) -> bool {
-        c.is_numeric() || *c == ',' || *c == '.'
+        c.is_numeric() || *c == '.'
     }
 
     fn add_multiplications(&mut self) {
@@ -344,13 +345,17 @@ impl Tokenizer {
     }
 }
 
-pub fn tokenize(input: String) -> Result<Vec<Token>, Vec<TokenizerError>> {
+pub fn tokenize(input: String) -> Result<Vec<Token>, Vec<CLMathError>> {
     let mut tokenizer = Tokenizer::from(input);
 
     tokenizer.run();
 
     if !tokenizer.errors.is_empty() {
-        return Err(tokenizer.errors);
+        return Err(tokenizer
+            .errors
+            .into_iter()
+            .map(CLMathError::Tokenizer)
+            .collect());
     }
 
     Ok(tokenizer.tokens)

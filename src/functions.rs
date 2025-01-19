@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use std::{
     fmt::Debug,
     ops::{Add, Div, Mul, Rem, Sub},
@@ -211,7 +213,7 @@ fn create_error(
     match error_type {
         FunctionErrorType::DivisionByZero => {
             FunctionError::new(
-                if first_num > 10000.0 || first_num < 0.00001 {
+                if !(0.00001..=10000.0).contains(&first_num) {
                     format!("You cannot divide by zero. You tried to divide {:e} by {} which has no result.", first_num, second_num.unwrap())
                 } else {
                     format!("You cannot divide by zero. You tried to divide {} by {} which has no result.", first_num, second_num.unwrap())
@@ -229,13 +231,13 @@ fn create_error(
         ),
         FunctionErrorType::OverflowInf | FunctionErrorType::UnderflowInf => {
             let mut error_message = format!("The {} of ", operation_name.unwrap());
-            if first_num > 10000.0 || first_num < 0.00001 {
+            if !(0.00001..=10000.0).contains(&first_num) {
                 error_message.push_str(format!("{:e}", first_num).as_str());
             } else {
                 error_message.push_str(format!("{}", first_num).as_str());
             }
             error_message.push_str(" and ");
-            if second_num.unwrap() > 10000.0 || second_num.unwrap() < 0.00001 {
+            if !(0.00001..=10000.0).contains(&second_num.unwrap()) {
                 error_message.push_str(format!("{:e}", second_num.unwrap()).as_str());
             } else {
                 error_message.push_str(format!("{}", second_num.unwrap()).as_str());
