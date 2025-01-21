@@ -136,18 +136,14 @@ impl Tokenizer {
     }
 
     fn tokenize_number(&mut self, token_value: &str) -> Token {
-        Token::Number(
-            token_value
-                .parse::<f64>()
-                .unwrap_or_else(|err| {
-                    self.add_error(
-                        TokenizerErrorType::InvalidNumber,
-                        Some(token_value),
-                        Some(err.to_string()),
-                    );
-                    f64::NAN
-                }),
-        )
+        Token::Number(token_value.parse::<f64>().unwrap_or_else(|err| {
+            self.add_error(
+                TokenizerErrorType::InvalidNumber,
+                Some(token_value),
+                Some(err.to_string()),
+            );
+            f64::NAN
+        }))
     }
 
     fn tokenize_variable(&self, token_value: &str) -> Token {
@@ -256,7 +252,7 @@ impl Tokenizer {
     }
 
     fn is_number(c: &char) -> bool {
-        c.is_numeric() || *c == '.'
+        c.is_numeric() || *c == '.' 
     }
 
     fn add_multiplications(&mut self) {

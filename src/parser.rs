@@ -25,7 +25,7 @@ pub enum Expression {
 #[derive(Debug)]
 pub struct BracketedExpression {
     opening_bracket: OpeningBracket,
-    expression: Expression,
+    pub expression: Expression,
     closing_bracket: ClosingBracket,
 }
 
@@ -51,23 +51,23 @@ pub struct Comma;
 
 #[derive(Debug)]
 pub struct ElementaryFunction {
-    expression_lhs: Expression,
-    function: ElementaryFunc,
-    expression_rhs: Expression,
+    pub expression_lhs: Expression,
+    pub function: ElementaryFunc,
+    pub expression_rhs: Expression,
 }
 
 #[derive(Debug)]
 pub struct HigherOrderFunction {
-    function: HigherOrderFunc,
+    pub function: HigherOrderFunc,
     opening_bracket: OpeningBracket,
-    params: Params,
+    pub params: Params,
     closing_bracket: ClosingBracket,
 }
 
 #[derive(Debug)]
 pub struct Params {
-    expression: Expression,
-    expression_comma: Option<Vec<(Comma, Expression)>>,
+    pub expression: Expression,
+    pub expression_comma: Option<Vec<(Comma, Expression)>>,
 }
 
 impl Params {
@@ -136,7 +136,7 @@ impl Parser {
                 self.expression()
             } else if self.expression_ends_queue.is_empty() {
                 Err(ParserError::ExpectedElementaryFunction)
-            } else  {
+            } else {
                 Ok(expression)
             }
         } else {
@@ -155,7 +155,7 @@ impl Parser {
         } else {
             panic!("Queue cannot be empty. It was checked before to be not empty.")
         };
-        
+
         let end = *self.expression_ends_queue.front().expect(
             "Should be a value there. This function is only called after value is pushed in queue.",
         );
@@ -177,7 +177,7 @@ impl Parser {
 
     fn bracketed_expression(&mut self) -> Result<BracketedExpression, ParserError> {
         let opening_bracket = self.opening_bracket()?;
-        
+
         let mut idx = 0;
         let mut opening_brackets = 1;
 
@@ -188,7 +188,7 @@ impl Parser {
                 Some(_) => (),
                 None => return Err(ParserError::ExpectedClosingBracket),
             };
-            
+
             if opening_brackets == 0 {
                 break;
             } else {
@@ -196,8 +196,7 @@ impl Parser {
             }
         }
 
-        self.expression_ends_queue
-            .push_front(idx + self.curr_idx); // Offset from start
+        self.expression_ends_queue.push_front(idx + self.curr_idx); // Offset from start
 
         let expression = self.expression_until()?;
 

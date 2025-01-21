@@ -125,6 +125,7 @@ pub enum FunctionErrorType {
     DivisionByZero,
     OverflowInf,
     UnderflowInf,
+    InvalidParameterType,
 }
 
 #[derive(Debug)]
